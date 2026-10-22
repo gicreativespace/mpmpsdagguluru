@@ -128,10 +128,11 @@ function bindEvents() {
         });
     });
 
-    const teacherIdInput = document.getElementById('teacherId');
-    if (teacherIdInput) {
-        teacherIdInput.addEventListener('input', () => {
-            teacherIdInput.value = teacherIdInput.value.replace(/[^0-9-]/g, '').slice(0, 13);
+    // ✅ ఫోన్ నంబర్ ఇన్‌పుట్ (teacherId బదులు)
+    const teacherPhoneInput = document.getElementById('teacherPhone');
+    if (teacherPhoneInput) {
+        teacherPhoneInput.addEventListener('input', () => {
+            teacherPhoneInput.value = teacherPhoneInput.value.replace(/\D/g, '').slice(0, 10);
         });
     }
 
@@ -167,13 +168,16 @@ function bindEvents() {
     }
 }
 
+// =====================================================
+// TEACHER LOGIN (Phone Number + PIN)
+// =====================================================
 async function handleTeacherLogin() {
-    const teacherId = document.getElementById('teacherId').value.trim();
+    const phone = document.getElementById('teacherPhone').value.trim();
     const pin = document.getElementById('teacherPin').value;
     const errorEl = document.getElementById('teacherLoginError');
     const btn = document.getElementById('teacherLoginBtn');
 
-    if (!teacherId) return showFormError(errorEl, 'Teacher ID నింపండి.');
+    if (!/^\d{10}$/.test(phone)) return showFormError(errorEl, '10 అంకెల ఫోన్ నంబర్ నింపండి.');
     if (!/^\d{4}$/.test(pin)) return showFormError(errorEl, 'Master PIN 4 అంకెలు ఉండాలి.');
 
     btn.disabled = true;
@@ -181,14 +185,15 @@ async function handleTeacherLogin() {
     hideFormError(errorEl);
 
     try {
+        // ✅ ఫోన్ నంబర్ తో వెతకండి
         const snapshot = await db.collection('users')
-            .where('teacherId', '==', teacherId)
+            .where('phone', '==', phone)
             .where('role', '==', 'teacher')
             .limit(1)
             .get();
 
         if (snapshot.empty) {
-            return showFormError(errorEl, '❌ Teacher ID కనుగొనబడలేదు. HM ని సంప్రదించండి.');
+            return showFormError(errorEl, '❌ ఈ ఫోన్ నంబర్ కనుగొనబడలేదు. HM ని సంప్రదించండి.');
         }
 
         const teacherDoc = snapshot.docs[0];
@@ -203,11 +208,12 @@ async function handleTeacherLogin() {
             return showFormError(errorEl, '❌ తప్పు Master PIN.');
         }
 
+        // ✅ సెషన్ లో ఫోన్ నంబర్ సేవ్ చేయి
         currentTeacher = {
             id: teacherDoc.id,
             name: teacherData.name || 'Teacher',
-            teacherId: teacherData.teacherId,
-            subject: teacherData.subject || '',
+            phone: teacherData.phone,
+            assignments: teacherData.assignments || [],
             role: 'teacher'
         };
         localStorage.setItem('dm_teacher_session', JSON.stringify(currentTeacher));
@@ -228,7 +234,7 @@ async function loadTeacherData() {
     if (!currentTeacher) return;
 
     document.getElementById('teacherWelcomeName').textContent = currentTeacher.name || '—';
-    document.getElementById('teacherWelcomeId').textContent = currentTeacher.teacherId || '—';
+    document.getElementById('teacherWelcomeId').textContent = currentTeacher.phone || '—';
 
     await loadMyDiaries();
 }
@@ -283,6 +289,9 @@ async function loadMyDiaries() {
     }
 }
 
+// =====================================================
+// SAVE DIARY (Class & Subject Dropdowns తో)
+// =====================================================
 async function handleSaveDiary() {
     if (!currentTeacher) {
         showFormError(document.getElementById('diaryError'), 'Session expire అయ్యింది. మళ్లీ login చేయండి.');
@@ -290,16 +299,16 @@ async function handleSaveDiary() {
     }
 
     const date = document.getElementById('diaryDate').value;
-    const className = document.getElementById('diaryClass').value.trim();
-    const subject = document.getElementById('diarySubject').value.trim();
+    const className = document.getElementById('diaryClass').value;
+    const subject = document.getElementById('diarySubject').value;
     const content = document.getElementById('diaryContent').value.trim();
     const homework = document.getElementById('diaryHomework').value.trim();
     const errorEl = document.getElementById('diaryError');
     const btn = document.getElementById('diarySubmitBtn');
 
     if (!date) return showFormError(errorEl, 'తేదీ ఎంచుకోండి.');
-    if (!className) return showFormError(errorEl, 'Class నింపండి.');
-    if (!subject) return showFormError(errorEl, 'Subject నింపండి.');
+    if (!className) return showFormError(errorEl, 'Class ఎంచుకోండి.');
+    if (!subject) return showFormError(errorEl, 'Subject ఎంచుకోండి.');
     if (!content) return showFormError(errorEl, 'ఏమి చెప్పారో రాయండి.');
 
     btn.disabled = true;
@@ -310,7 +319,7 @@ async function handleSaveDiary() {
         await db.collection('diary').add({
             teacherId: currentTeacher.id,
             teacherName: currentTeacher.name,
-            teacherCode: currentTeacher.teacherId,
+            teacherPhone: currentTeacher.phone,
             date: date,
             className: className,
             subject: subject,
@@ -356,7 +365,7 @@ async function handleSaveLeave() {
         await db.collection('leaveLetters').add({
             teacherId: currentTeacher.id,
             teacherName: currentTeacher.name,
-            teacherCode: currentTeacher.teacherId,
+            teacherPhone: currentTeacher.phone,
             fromDate: fromDate,
             toDate: toDate,
             reason: reason,
