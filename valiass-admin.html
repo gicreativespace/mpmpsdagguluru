@@ -59,6 +59,69 @@
         </div>
       </div>
 
+      <p id="adminLoginError" class="form-error hidden" role="alert"></p>
+
+      <button type="submit" id="adminLoginBtn" class="btn btn-primary btn-block">
+        లాగిన్
+      </button>
+    </form>
+  </div>
+</section>
+
+<!-- ========== SCREEN 4: EDIT PRINCIPAL (మార్చిన భాగం) ========== -->
+<section id="screenEdit" class="screen hidden">
+  <div class="card">
+    <h2 class="card-title">✏️ Edit Principal</h2>
+    <p id="editHmStatus" class="card-desc"></p>
+
+    <!-- HM Details Summary -->
+    <div id="hmDetailsCard" style="background: var(--bg-color); padding: var(--space-md); border-radius: var(--radius-md); margin-bottom: var(--space-md); border: 1px solid var(--border-color);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-sm);">
+        <span style="font-weight: 600;">👤 HM Name:</span>
+        <span id="editHmNameDisplay" style="font-weight: 700; color: var(--primary);">—</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-sm);">
+        <span style="font-weight: 600;">📌 Status:</span>
+        <span id="editHmStatusDisplay" style="font-weight: 700;">—</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-weight: 600;">🏫 School:</span>
+        <span id="editSchoolDisplay" style="font-weight: 700;">—</span>
+      </div>
+      
+      <!-- ✅ కొత్తగా యాడ్ చేసిన View PIN సెక్షన్ -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-sm); padding-top: var(--space-sm); border-top: 1px solid var(--border-color);">
+        <span style="font-weight: 600;">🔑 HM PIN:</span>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span id="editHmPinDisplay" style="font-weight: 700; color: var(--danger); font-size: 1.1rem; letter-spacing: 2px;">••••••</span>
+          <button type="button" class="icon-btn" onclick="toggleViewPin()" title="View PIN" style="background: var(--primary); color: #fff; padding: 4px; border-radius: 50%; width: 30px; height: 30px; font-size: 0.8rem;">
+            <i class="fas fa-eye" id="viewPinIcon"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div style="display: flex; flex-direction: column; gap: var(--space-sm);">
+      <button class="btn btn-primary btn-block" onclick="showScreen('editForm')" style="padding: 16px;">
+        <i class="fas fa-edit" style="margin-right: 8px;"></i> Edit Details
+      </button>
+      <button class="btn btn-secondary btn-block" id="disableBtn" onclick="handleDisable()" style="padding: 16px;">
+        <i class="fas fa-lock" style="margin-right: 8px;"></i> Disable HM
+      </button>
+      <button class="btn btn-outline btn-block" onclick="showScreen('transfer')" style="padding: 16px;">
+        <i class="fas fa-exchange-alt" style="margin-right: 8px;"></i> Transfer HM
+      </button>
+      <button class="btn btn-danger btn-block" onclick="handleDelete()" style="padding: 16px;">
+        <i class="fas fa-trash" style="margin-right: 8px;"></i> Delete HM
+      </button>
+    </div>
+
+    <button type="button" class="link-btn" onclick="showScreen('dashboard')">
+      <i class="fas fa-arrow-left"></i> వెనక్కి
+    </button>
+  </div>
+</section>
       <!-- ✅ కొత్తగా HM PIN చూపించే ఫీల్డ్ (కేవలం చదవడానికి మాత్రమే) -->
       <div class="field" style="margin-top: var(--space-md);">
         <label for="viewHmPin" style="color: var(--primary);">HM Login PIN</label>
