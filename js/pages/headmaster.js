@@ -80,10 +80,7 @@ function showScreen(name) {
     if (target) target.classList.remove('hidden');
 
     const backBtn = document.getElementById('backBtn');
-    if (backBtn) {
-        if (name === 'reset') backBtn.classList.remove('hidden');
-        else backBtn.classList.add('hidden');
-    }
+    if (backBtn) {  ...  }
 
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) logoutBtn.classList.add('hidden');
