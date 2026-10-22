@@ -10,12 +10,17 @@ const UI = {
     },
 
     // =====================================================
-    // AUTO BACK BUTTON (అన్ని పేజీలకు - Strict Mode)
+    // AUTO BACK BUTTON (లాగిన్/ఇన్నర్ పేజీలకు మాత్రమే)
     // =====================================================
     initAutoBackButton: function() {
         const header = document.querySelector('.app-header');
         if (!header) return;
-        
+
+        // ✅ హోమ్ పేజీ (index.html) అయితే బ్యాక్ బటన్ వద్దు
+        const currentPath = window.location.pathname;
+        const isHomePage = currentPath.endsWith('index.html') || currentPath === '/' || currentPath.endsWith('/');
+        if (isHomePage) return;
+
         // పాత బ్యాక్ బటన్ ఉంటే తీసేయి
         const existingBackBtn = header.querySelector('#backBtn');
         if (existingBackBtn) existingBackBtn.remove();
@@ -38,17 +43,15 @@ const UI = {
         // హెడర్ లో మొదటి ఎలిమెంట్ గా యాడ్ చేయి
         header.insertBefore(backBtn, header.firstChild);
 
-        // ✅ Strict Mode: ఎవరైనా ఈ బటన్ ని హైడ్ చేయడానికి ప్రయత్నిస్తే, వెంటనే దాన్ని సరిచేయి
-        const observer = new MutationObserver(() => {
+        // ✅ Strict Force Mode: ప్రతి 300ms కి ఒకసారి చెక్ చేసి, ఎవరైనా బటన్ ని దాచినా మళ్లీ కనిపించేలా చేయి
+        setInterval(() => {
             if (backBtn.style.display === 'none') {
                 backBtn.style.display = 'flex';
             }
             if (backBtn.classList.contains('hidden')) {
                 backBtn.classList.remove('hidden');
             }
-        });
-        
-        observer.observe(backBtn, { attributes: true, attributeFilter: ['style', 'class'] });
+        }, 300);
     },
 
     // =====================================================
