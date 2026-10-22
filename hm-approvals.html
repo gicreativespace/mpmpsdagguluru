@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="te">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#1B5E20" />
+  <title>Approvals — MPMP School - Dagguluru</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="page-approvals">
+
+  <!-- ===== SPLASH SCREEN ===== -->
+  <div id="splash" class="splash-screen">
+    <div class="splash-logo" style="font-size:4rem;">✅</div>
+    <h1 class="splash-title">Approvals</h1>
+    <p class="splash-sub">MPMP School - Dagguluru</p>
+    <div class="splash-loader"></div>
+  </div>
+
+  <!-- ===== MAIN APP ===== -->
+  <main id="approvalsApp" class="hm-app hidden">
+
+    <!-- Header -->
+    <header class="app-header">
+      <button id="backBtn" class="icon-btn back-btn" aria-label="Back" title="వెనక్కి">
+        <i class="fas fa-arrow-left"></i>
+      </button>
+      <h1 id="pageTitle" class="app-title">Diary Approvals</h1>
+      <button id="logoutBtn" class="icon-btn logout-btn" aria-label="Logout" title="లాగౌట్">
+        <i class="fas fa-sign-out-alt"></i>
+      </button>
+      <button id="themeBtn" class="icon-btn theme-btn" aria-label="Theme" title="థీమ్">🌙</button>
+    </header>
+
+    <!-- ========== SCREEN: APPROVALS ========== -->
+    <section id="screenList" class="screen hidden">
+      <!-- Stats -->
+      <div class="card" style="background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: #fff; border: none;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md);">
+          <div style="text-align: center;">
+            <p style="font-size: 0.8rem; opacity: 0.9;">Pending</p>
+            <h2 id="pendingCount" style="font-size: 1.8rem; margin: 4px 0;">—</h2>
+          </div>
+          <div style="text-align: center;">
+            <p style="font-size: 0.8rem; opacity: 0.9;">Approved</p>
+            <h2 id="approvedCount" style="font-size: 1.8rem; margin: 4px 0;">—</h2>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter Tabs -->
+      <div class="card" style="padding: var(--space-sm);">
+        <div style="display: flex; gap: var(--space-xs);">
+          <button id="tabPending" class="btn btn-primary" onclick="switchTab('pending')" style="flex: 1; padding: 10px; font-size: 0.85rem;">
+            ⏳ Pending
+          </button>
+          <button id="tabApproved" class="btn btn-outline" onclick="switchTab('approved')" style="flex: 1; padding: 10px; font-size: 0.85rem;">
+            ✅ Approved
+          </button>
+        </div>
+      </div>
+
+      <!-- Diary List -->
+      <div id="diaryList">
+        <p style="color: var(--text-muted); text-align: center; padding: var(--space-md);">లోడ్ అవుతోంది...</p>
+      </div>
+
+      <button class="btn btn-outline btn-block" onclick="loadDiaries()" style="margin-top: var(--space-md);">
+        <i class="fas fa-sync-alt" style="margin-right: 6px;"></i> Refresh
+      </button>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="app-footer">
+      An initiative of <span class="valiass-link" onclick="UI.showContact()">@valiass</span> team
+    </footer>
+
+  </main>
+
+  <!-- TOAST CONTAINER -->
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <!-- ==================== FIREBASE SDKs ==================== -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+
+  <!-- ==================== APP SCRIPTS ==================== -->
+  <script src="js/config.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/pages/hm-approvals.js"></script>
+</body>
+</html>
