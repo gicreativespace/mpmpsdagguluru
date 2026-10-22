@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="te">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#1B5E20" />
+  <title>Valiass Admin — MPMP School - Dagguluru</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="page-valiass">
+
+  <!-- ===== SPLASH SCREEN ===== -->
+  <div id="splash" class="splash-screen">
+    <div class="splash-logo" style="font-size:4rem;">⚙️</div>
+    <h1 class="splash-title">Valiass Admin</h1>
+    <p class="splash-sub">MPMP School - Dagguluru</p>
+    <div class="splash-loader"></div>
+  </div>
+
+  <!-- ===== MAIN APP ===== -->
+  <main id="valiassApp" class="valiass-app hidden">
+
+    <!-- Header -->
+    <header class="app-header">
+      <button id="backBtn" class="icon-btn back-btn hidden" aria-label="Back" title="వెనక్కి">
+        <i class="fas fa-arrow-left"></i>
+      </button>
+      <h1 id="pageTitle" class="app-title">Valiass Admin</h1>
+      <button id="logoutBtn" class="icon-btn logout-btn hidden" aria-label="Logout" title="లాగౌట్">
+        <i class="fas fa-sign-out-alt"></i>
+      </button>
+      <button id="themeBtn" class="icon-btn theme-btn" aria-label="Theme" title="థీమ్">🌙</button>
+    </header>
+
+    <!-- ========== SCREEN 1: LOGIN ========== -->
+    <section id="screenLogin" class="screen hidden">
+      <div class="card card-center">
+        <div class="login-icon">🔐</div>
+        <h2 class="card-title">Valiass Admin Login</h2>
+        <p class="card-desc">Admin క్రెడెన్షియల్స్ నమోదు చేయండి</p>
+
+        <form id="adminLoginForm" class="form" novalidate>
+          <div class="field">
+            <label for="adminEmail">Email</label>
+            <input type="email" id="adminEmail" placeholder="valiass-admin@example.com" required autocomplete="username" />
+          </div>
+          <div class="field">
+            <label for="adminPassword">Password</label>
+            <div class="pin-wrap">
+              <input type="password" id="adminPassword" placeholder="Password నమోదు చేయండి" required autocomplete="current-password" />
+              <button type="button" class="pin-toggle" data-target="adminPassword" aria-label="Show Password">👁</button>
+            </div>
+          </div>
+          <p id="adminLoginError" class="form-error hidden" role="alert"></p>
+          <button type="submit" id="adminLoginBtn" class="btn btn-primary btn-block">
+            లాగిన్
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- ========== SCREEN 2: DASHBOARD ========== -->
+    <section id="screenDashboard" class="screen hidden">
+      <div class="card">
+        <h2 class="card-title">⚙️ Valiass Admin Panel</h2>
+        <p class="card-desc">HM నిర్వహణ మరియు పాఠశాల సెటప్</p>
+
+        <div style="display: flex; flex-direction: column; gap: var(--space-md); margin-top: var(--space-lg);">
+          <!-- Setup Principal -->
+          <button class="btn btn-primary btn-block" onclick="showScreen('setup')" style="padding: 18px;">
+            <i class="fas fa-plus-circle" style="margin-right: 8px;"></i>
+            Setup Principal
+          </button>
+
+          <!-- Edit Principal -->
+          <button class="btn btn-outline btn-block" onclick="loadEditPrincipal()" style="padding: 18px;">
+            <i class="fas fa-edit" style="margin-right: 8px;"></i>
+            Edit Principal
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== SCREEN 3: SETUP PRINCIPAL ========== -->
+    <section id="screenSetup" class="screen hidden">
+      <div class="card">
+        <h2 class="card-title">🔧 Setup Principal</h2>
+        <p class="card-desc">HM మరియు పాఠశాల వివరాలు నింపండి</p>
+
+        <form id="setupPrincipalForm" class="form" novalidate>
+          <h3 style="color: var(--primary); font-size: 0.95rem; margin-top: var(--space-sm);">📋 పాఠశాల వివరాలు</h3>
+          <div class="field">
+            <label for="setDistrict">జిల్లా</label>
+            <input type="text" id="setDistrict" required autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="setMandal">మండలం</label>
+            <input type="text" id="setMandal" required autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="setVillage">గ్రామం</label>
+            <input type="text" id="setVillage" required autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="setSchool">పాఠశాల పేరు</label>
+            <input type="text" id="setSchool" required autocomplete="off" />
+          </div>
+
+          <h3 style="color: var(--primary); font-size: 0.95rem; margin-top: var(--space-sm);">👤 HM వివరాలు</h3>
+          <div class="field">
+            <label for="setHmName">HM పేరు</label>
+            <input type="text" id="setHmName" required autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="setHmPin">HM PIN (6 అంకెలు)</label>
+            <div class="pin-wrap">
+              <input type="password" id="setHmPin" maxlength="6" inputmode="numeric" placeholder="6 అంకెల PIN నమోదు చేయండి" required autocomplete="new-password" />
+              <button type="button" class="pin-toggle" data-target="setHmPin" aria-label="Show PIN">👁</button>
+            </div>
+          </div>
+          <div class="field">
+            <label for="setHmPinConfirm">HM PIN నిర్ధారించండి</label>
+            <div class="pin-wrap">
+              <input type="password" id="setHmPinConfirm" maxlength="6" inputmode="numeric" placeholder="మళ్లీ 6 అంకెల PIN నమోదు చేయండి" required autocomplete="new-password" />
+              <button type="button" class="pin-toggle" data-target="setHmPinConfirm" aria-label="Show PIN">👁</button>
+            </div>
+          </div>
+
+          <p id="setupPrincipalError" class="form-error hidden" role="alert"></p>
+
+          <button type="submit" id="setupPrincipalBtn" class="btn btn-primary btn-block">
+            <i class="fas fa-save" style="margin-right: 8px;"></i> Save & Complete Setup
+          </button>
+        </form>
+
+        <button type="button" class="link-btn" onclick="showScreen('dashboard')">
+          <i class="fas fa-arrow-left"></i> వెనక్కి
+        </button>
+      </div>
+    </section>
+
+    <!-- ========== SCREEN 4: EDIT PRINCIPAL ========== -->
+    <section id="screenEdit" class="screen hidden">
+      <div class="card">
+        <h2 class="card-title">✏️ Edit Principal</h2>
+        <p id="editHmStatus" class="card-desc"></p>
+
+        <!-- HM Details Summary -->
+        <div id="hmDetailsCard" style="background: var(--bg-color); padding: var(--space-md); border-radius: var(--radius-md); margin-bottom: var(--space-md); border: 1px solid var(--border-color);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-sm);">
+            <span style="font-weight: 600;">👤 HM Name:</span>
+            <span id="editHmNameDisplay" style="font-weight: 700; color: var(--primary);">—</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-sm);">
+            <span style="font-weight: 600;">📌 Status:</span>
+            <span id="editHmStatusDisplay" style="font-weight: 700;">—</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-weight: 600;">🏫 School:</span>
+            <span id="editSchoolDisplay" style="font-weight: 700;">—</span>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div style="display: flex; flex-direction: column; gap: var(--space-sm);">
+          <button class="btn btn-primary btn-block" onclick="showScreen('editForm')" style="padding: 16px;">
+            <i class="fas fa-edit" style="margin-right: 8px;"></i> Edit Details
+          </button>
+          <button class="btn btn-secondary btn-block" id="disableBtn" onclick="handleDisable()" style="padding: 16px;">
+            <i class="fas fa-lock" style="margin-right: 8px;"></i> Disable HM
+          </button>
+          <button class="btn btn-outline btn-block" onclick="showScreen('transfer')" style="padding: 16px;">
+            <i class="fas fa-exchange-alt" style="margin-right: 8px;"></i> Transfer HM
+          </button>
+          <button class="btn btn-danger btn-block" onclick="handleDelete()" style="padding: 16px;">
+            <i class="fas fa-trash" style="margin-right: 8px;"></i> Delete HM
+          </button>
+        </div>
+
+        <button type="button" class="link-btn" onclick="showScreen('dashboard')">
+          <i class="fas fa-arrow-left"></i> వెనక్కి
+        </button>
+      </div>
+    </section>
+
+    <!-- ========== SCREEN 5: EDIT FORM ========== -->
+    <section id="screenEditForm" class="screen hidden">
+      <div class="card">
+        <h2 class="card-title">✏️ Edit HM Details</h2>
+        <form id="editHmForm" class="form" novalidate>
+          <div class="field">
+            <label for="editHmName">HM పేరు</label>
+            <input type="text" id="editHmName" required autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="editHmPin">కొత్త PIN (6 అంకెలు - ఖాళీగా వదిలితే మారదు)</label>
+            <div class="pin-wrap">
+              <input type="password" id="editHmPin" maxlength="6" inputmode="numeric" placeholder="కొత్త PIN (ఐచ్ఛికం)" autocomplete="new-password" />
+              <button type="button" class="pin-toggle" data-target="editHmPin" aria-label="Show PIN">👁</button>
+            </div>
+          </div>
+          <div class="field">
+            <label for="editSchoolName">పాఠశాల పేరు</label>
+            <input type="text" id="editSchoolName" required autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="editDistrict">జిల్లా</label>
+            <input type="text" id="editDistrict" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="editMandal">మండలం</label>
+            <input type="text" id="editMandal" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="editVillage">గ్రామం</label>
+            <input type="text" id="editVillage" autocomplete="off" />
+          </div>
+
+          <p id="editHmError" class="form-error hidden" role="alert"></p>
+
+          <button type="submit" id="editHmSubmitBtn" class="btn btn-primary btn-block">
+            <i class="fas fa-save" style="margin-right: 8px;"></i> Save Changes
+          </button>
+        </form>
+        <button type="button" class="link-btn" onclick="showScreen('edit')">
+          <i class="fas fa-arrow-left"></i> వెనక్కి
+        </button>
+      </div>
+    </section>
+
+    <!-- ========== SCREEN 6: TRANSFER HM ========== -->
+    <section id="screenTransfer" class="screen hidden">
+      <div class="card">
+        <h2 class="card-title">🔄 Transfer HM</h2>
+        <p class="card-desc">పాత HM disable అవుతారు, కొత్త HM యాక్టివ్ అవుతారు</p>
+
+        <form id="transferForm" class="form" novalidate>
+          <div class="field">
+            <label for="transferNewName">కొత్త HM పేరు</label>
+            <input type="text" id="transferNewName" required autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="transferNewPin">కొత్త HM PIN (6 అంకెలు)</label>
+            <div class="pin-wrap">
+              <input type="password" id="transferNewPin" maxlength="6" inputmode="numeric" placeholder="6 అంకెల PIN" required autocomplete="new-password" />
+              <button type="button" class="pin-toggle" data-target="transferNewPin" aria-label="Show PIN">👁</button>
+            </div>
+          </div>
+          <div class="field">
+            <label for="transferNewPinConfirm">PIN నిర్ధారించండి</label>
+            <div class="pin-wrap">
+              <input type="password" id="transferNewPinConfirm" maxlength="6" inputmode="numeric" placeholder="మళ్లీ 6 అంకెల PIN" required autocomplete="new-password" />
+              <button type="button" class="pin-toggle" data-target="transferNewPinConfirm" aria-label="Show PIN">👁</button>
+            </div>
+          </div>
+
+          <p id="transferError" class="form-error hidden" role="alert"></p>
+
+          <button type="submit" id="transferSubmitBtn" class="btn btn-primary btn-block">
+            <i class="fas fa-exchange-alt" style="margin-right: 8px;"></i> Confirm Transfer
+          </button>
+        </form>
+        <button type="button" class="link-btn" onclick="showScreen('edit')">
+          <i class="fas fa-arrow-left"></i> వెనక్కి
+        </button>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="app-footer">
+      An initiative of <span class="valiass-link" onclick="UI.showContact()">@valiass</span> team
+    </footer>
+
+  </main>
+
+  <!-- TOAST CONTAINER -->
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <!-- ==================== FIREBASE SDKs ==================== -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+
+  <!-- ==================== APP SCRIPTS ==================== -->
+  <script src="js/config.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/pages/valiass-admin.js"></script>
+</body>
+</html>
