@@ -79,8 +79,7 @@ function showScreen(name) {
     const target = document.getElementById('screen' + capitalize(name));
     if (target) target.classList.remove('hidden');
 
-    const backBtn = document.getElementById('backBtn');
-    if (backBtn) {  ...  }
+    // ✅ backBtn కంట్రోల్ తీసేయబడింది. ui.js ఆటోమేటిక్ గా మేనేజ్ చేస్తుంది.
 
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) logoutBtn.classList.add('hidden');
@@ -115,13 +114,7 @@ function bindEvents() {
         });
     }
 
-    const backBtn = document.getElementById('backBtn');
-    if (backBtn) {
-        backBtn.addEventListener('click', () => {
-            if (currentScreen === 'reset') showScreen('login');
-            else window.location.href = 'index.html';
-        });
-    }
+    // ✅ backBtn ఈవెంట్ తీసేయబడింది. ui.js ఆటోమేటిక్ గా పని చేస్తుంది.
 
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
@@ -259,7 +252,7 @@ function markLoginDotError() {
 }
 
 // =====================================================
-// HANDLE SETUP — ✅ errorEl ముందే డిఫైన్
+// HANDLE SETUP
 // =====================================================
 async function handleSetup() {
     const errorEl = document.getElementById('setupError');
