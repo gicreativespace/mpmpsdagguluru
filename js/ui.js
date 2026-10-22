@@ -15,11 +15,19 @@ const UI = {
     initAutoBackButton: function() {
         const header = document.querySelector('.app-header');
         
-        // హెడర్ లేకపోతే లేదా ఇప్పటికే బ్యాక్ బటన్ ఉంటే ఆపు
+        // హెడర్ లేకపోతే ఆపు
         if (!header) return;
+        
+        // ఒకవేళ ఇప్పటికే పాత బ్యాక్ బటన్ (id="backBtn") ఉంటే దాన్ని తీసేయి
+        const existingBackBtn = header.querySelector('#backBtn');
+        if (existingBackBtn) {
+            existingBackBtn.remove();
+        }
+
+        // ఒకవేళ ఆటోమేటిక్ బ్యాక్ బటన్ ఇప్పటికే ఉంటే ఆపు
         if (header.querySelector('.auto-back-btn')) return;
 
-        // బ్యాక్ బటన్ క్రియేట్ చేయి
+        // కొత్త బ్యాక్ బటన్ క్రియేట్ చేయి
         const backBtn = document.createElement('button');
         backBtn.className = 'icon-btn back-btn auto-back-btn';
         backBtn.setAttribute('aria-label', 'Back');
@@ -31,7 +39,7 @@ const UI = {
             window.location.href = 'index.html';
         });
 
-        // హెడర్ లో మొదటి ఎలిమెంట్ గా యాడ్ చేయి (Title కి ముందు)
+        // హెడర్ లో మొదటి ఎలిమెంట్ గా యాడ్ చేయి
         header.insertBefore(backBtn, header.firstChild);
     },
 
