@@ -49,10 +49,29 @@ async function decideScreen() {
             }
         }
 
+        // ✅ HM PIN ను వ్యూ చేయడానికి ఫంక్షన్ కాల్ చేయి
+        await fetchHmPinForView();
+
         showScreen('login');
     } catch (error) {
         console.error('Screen decision error:', error);
         showScreen('login');
+    }
+}
+
+// ✅ HM PIN తెచ్చి చూపించే కొత్త ఫంక్షన్
+async function fetchHmPinForView() {
+    try {
+        const doc = await db.collection('schoolInfo').doc('main').get();
+        const pinInput = document.getElementById('viewHmPin');
+        if (doc.exists && pinInput) {
+            const data = doc.data();
+            pinInput.value = data.hmPin || 'సెటప్ చేయలేదు';
+        } else if (pinInput) {
+            pinInput.value = 'సెటప్ చేయలేదు';
+        }
+    } catch (error) {
+        console.error('Error fetching HM PIN:', error);
     }
 }
 
@@ -195,7 +214,8 @@ function bindEvents() {
 // ADMIN LOGIN (Firebase Auth Email/Password)
 // =====================================================
 async function handleAdminLogin() {
-    const email = document.getElementById('adminEmail').value.trim();
+    // ✅ Email లో స్పేస్ ఉంటే తీసేయి
+    const email = document.getElementById('adminEmail').value.trim().replace(/\s/g, ''); 
     const password = document.getElementById('adminPassword').value;
     const errorEl = document.getElementById('adminLoginError');
     const btn = document.getElementById('adminLoginBtn');
