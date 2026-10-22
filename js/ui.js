@@ -10,18 +10,15 @@ const UI = {
     },
 
     // =====================================================
-    // AUTO BACK BUTTON (అన్ని పేజీలకు)
+    // AUTO BACK BUTTON (అన్ని పేజీలకు - Strict Mode)
     // =====================================================
     initAutoBackButton: function() {
         const header = document.querySelector('.app-header');
-        
         if (!header) return;
         
         // పాత బ్యాక్ బటన్ ఉంటే తీసేయి
         const existingBackBtn = header.querySelector('#backBtn');
-        if (existingBackBtn) {
-            existingBackBtn.remove();
-        }
+        if (existingBackBtn) existingBackBtn.remove();
 
         // ఆటోమేటిక్ బ్యాక్ బటన్ ఇప్పటికే ఉంటే ఆపు
         if (header.querySelector('.auto-back-btn')) return;
@@ -41,16 +38,17 @@ const UI = {
         // హెడర్ లో మొదటి ఎలిమెంట్ గా యాడ్ చేయి
         header.insertBefore(backBtn, header.firstChild);
 
-        // ✅ ముఖ్యం: పేజీ స్క్రిప్ట్స్ బ్యాక్ బటన్ ని హైడ్ చేయడానికి ప్రయత్నిస్తే ఆపడానికి ఒక గార్డ్
-        // ప్రతి 500ms కి ఒకసారి చెక్ చేసి, బటన్ కనిపించేలా చూస్తుంది
-        setInterval(() => {
-            if (backBtn && backBtn.style.visibility === 'hidden') {
-                backBtn.style.visibility = 'visible';
+        // ✅ Strict Mode: ఎవరైనా ఈ బటన్ ని హైడ్ చేయడానికి ప్రయత్నిస్తే, వెంటనే దాన్ని సరిచేయి
+        const observer = new MutationObserver(() => {
+            if (backBtn.style.display === 'none') {
+                backBtn.style.display = 'flex';
             }
-            if (backBtn && backBtn.classList.contains('hidden')) {
+            if (backBtn.classList.contains('hidden')) {
                 backBtn.classList.remove('hidden');
             }
-        }, 500);
+        });
+        
+        observer.observe(backBtn, { attributes: true, attributeFilter: ['style', 'class'] });
     },
 
     // =====================================================
