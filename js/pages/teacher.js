@@ -1,12 +1,9 @@
 // js/pages/teacher.js
 
 let currentScreen = 'login';
-let currentTeacher = null; // { id, name, teacherId, ... }
+let currentTeacher = null;
 let allTeacherDiaries = [];
 
-// =====================================================
-// INIT
-// =====================================================
 document.addEventListener('DOMContentLoaded', async () => {
     const savedTheme = localStorage.getItem('dm_theme') || 'light';
     document.body.setAttribute('data-theme', savedTheme);
@@ -28,9 +25,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     bindEvents();
 });
 
-// =====================================================
-// SCREEN DECISION
-// =====================================================
 async function decideScreen() {
     try {
         if (typeof authReady !== 'undefined') {
@@ -40,7 +34,6 @@ async function decideScreen() {
             ]);
         }
 
-        // Session check
         const session = localStorage.getItem('dm_teacher_session');
         if (session) {
             const s = JSON.parse(session);
@@ -50,7 +43,6 @@ async function decideScreen() {
             return;
         }
 
-        // School setup check
         const schoolDoc = await db.collection('schoolInfo').doc('main').get();
         if (!schoolDoc.exists || !schoolDoc.data().isSetupComplete) {
             UI.toast('⚠️ పాఠశాల సెటప్ పూర్తి కాలేదు. హెడ్‌మాస్టర్‌ని సంప్రదించండి.', 'warning', 5000);
@@ -71,9 +63,6 @@ async function decideScreen() {
     }
 }
 
-// =====================================================
-// SCREEN SWITCHER
-// =====================================================
 function showScreen(name) {
     currentScreen = name;
     ['login', 'dashboard', 'diary', 'leave'].forEach(s => {
@@ -83,12 +72,7 @@ function showScreen(name) {
     const target = document.getElementById('screen' + capitalize(name));
     if (target) target.classList.remove('hidden');
 
-    const backBtn = document.getElementById('backBtn');
-    if (backBtn) {
-        if (name === 'dashboard') backBtn.classList.remove('hidden');
-        else if (name === 'diary' || name === 'leave') backBtn.classList.remove('hidden');
-        else backBtn.classList.add('hidden');
-    }
+    // ✅ backBtn కంట్రోల్ తీసేయబడింది.
 
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
@@ -111,9 +95,6 @@ function capitalize(s) {
     return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-// =====================================================
-// EVENT BINDINGS
-// =====================================================
 function bindEvents() {
     const themeBtn = document.getElementById('themeBtn');
     if (themeBtn) {
@@ -124,14 +105,7 @@ function bindEvents() {
         });
     }
 
-    const backBtn = document.getElementById('backBtn');
-    if (backBtn) {
-        backBtn.addEventListener('click', () => {
-            if (currentScreen === 'dashboard') window.location.href = 'index.html';
-            else if (currentScreen === 'diary' || currentScreen === 'leave') showScreen('dashboard');
-            else showScreen('login');
-        });
-    }
+    // ✅ backBtn ఈవెంట్ తీసేయబడింది.
 
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
@@ -154,11 +128,9 @@ function bindEvents() {
         });
     });
 
-    // Teacher ID auto-format
     const teacherIdInput = document.getElementById('teacherId');
     if (teacherIdInput) {
         teacherIdInput.addEventListener('input', () => {
-            // Allow digits and dash
             teacherIdInput.value = teacherIdInput.value.replace(/[^0-9-]/g, '').slice(0, 13);
         });
     }
@@ -170,7 +142,6 @@ function bindEvents() {
         });
     }
 
-    // Login form
     const loginForm = document.getElementById('teacherLoginForm');
     if (loginForm) {
         loginForm.addEventListener('submit', (e) => {
@@ -179,7 +150,6 @@ function bindEvents() {
         });
     }
 
-    // Diary form
     const diaryForm = document.getElementById('diaryForm');
     if (diaryForm) {
         diaryForm.addEventListener('submit', (e) => {
@@ -188,7 +158,6 @@ function bindEvents() {
         });
     }
 
-    // Leave form
     const leaveForm = document.getElementById('leaveForm');
     if (leaveForm) {
         leaveForm.addEventListener('submit', (e) => {
@@ -198,9 +167,6 @@ function bindEvents() {
     }
 }
 
-// =====================================================
-// TEACHER LOGIN
-// =====================================================
 async function handleTeacherLogin() {
     const teacherId = document.getElementById('teacherId').value.trim();
     const pin = document.getElementById('teacherPin').value;
@@ -215,7 +181,6 @@ async function handleTeacherLogin() {
     hideFormError(errorEl);
 
     try {
-        // Find teacher by teacherId
         const snapshot = await db.collection('users')
             .where('teacherId', '==', teacherId)
             .where('role', '==', 'teacher')
@@ -229,18 +194,15 @@ async function handleTeacherLogin() {
         const teacherDoc = snapshot.docs[0];
         const teacherData = teacherDoc.data();
 
-        // Check active
         if (teacherData.isActive === false) {
             return showFormError(errorEl, '🔒 మీ ఖాతా నిలిపివేయబడింది. HM ని సంప్రదించండి.');
         }
 
-        // Check PIN
         const storedPin = String(teacherData.masterPin || '').trim();
         if (storedPin !== pin) {
             return showFormError(errorEl, '❌ తప్పు Master PIN.');
         }
 
-        // Save session
         currentTeacher = {
             id: teacherDoc.id,
             name: teacherData.name || 'Teacher',
@@ -262,17 +224,12 @@ async function handleTeacherLogin() {
     }
 }
 
-// =====================================================
-// LOAD TEACHER DATA (dashboard)
-// =====================================================
 async function loadTeacherData() {
     if (!currentTeacher) return;
 
-    // Welcome
     document.getElementById('teacherWelcomeName').textContent = currentTeacher.name || '—';
     document.getElementById('teacherWelcomeId').textContent = currentTeacher.teacherId || '—';
 
-    // Load my diaries
     await loadMyDiaries();
 }
 
@@ -294,7 +251,6 @@ async function loadMyDiaries() {
             allTeacherDiaries.push({ id: doc.id, ...doc.data() });
         });
 
-        // Sort by date descending
         allTeacherDiaries.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
         if (allTeacherDiaries.length === 0) {
@@ -327,9 +283,6 @@ async function loadMyDiaries() {
     }
 }
 
-// =====================================================
-// SAVE DIARY
-// =====================================================
 async function handleSaveDiary() {
     if (!currentTeacher) {
         showFormError(document.getElementById('diaryError'), 'Session expire అయ్యింది. మళ్లీ login చేయండి.');
@@ -382,9 +335,6 @@ async function handleSaveDiary() {
     }
 }
 
-// =====================================================
-// SAVE LEAVE
-// =====================================================
 async function handleSaveLeave() {
     if (!currentTeacher) return;
 
@@ -426,9 +376,6 @@ async function handleSaveLeave() {
     }
 }
 
-// =====================================================
-// HELPERS
-// =====================================================
 function escapeHtml(text) {
     if (!text) return '';
     const div = document.createElement('div');
