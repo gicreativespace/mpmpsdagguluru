@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="te">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#1B5E20" />
+  <title>Classrooms — MPMP School - Dagguluru</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="page-classrooms">
+
+  <!-- ===== SPLASH SCREEN ===== -->
+  <div id="splash" class="splash-screen">
+    <div class="splash-logo" style="font-size:4rem;">🏫</div>
+    <h1 class="splash-title">Classrooms</h1>
+    <p class="splash-sub">MPMP School - Dagguluru</p>
+    <div class="splash-loader"></div>
+  </div>
+
+  <!-- ===== MAIN APP ===== -->
+  <main id="classroomsApp" class="hm-app hidden">
+
+    <!-- Header -->
+    <header class="app-header">
+      <button id="backBtn" class="icon-btn back-btn" aria-label="Back" title="వెనక్కి">
+        <i class="fas fa-arrow-left"></i>
+      </button>
+      <h1 id="pageTitle" class="app-title">Classrooms</h1>
+      <button id="logoutBtn" class="icon-btn logout-btn" aria-label="Logout" title="లాగౌట్">
+        <i class="fas fa-sign-out-alt"></i>
+      </button>
+      <button id="themeBtn" class="icon-btn theme-btn" aria-label="Theme" title="థీమ్">🌙</button>
+    </header>
+
+    <!-- ========== SCREEN 1: CLASSROOM LIST ========== -->
+    <section id="screenList" class="screen hidden">
+      <div class="card">
+        <h2 class="card-title">🏫 Classrooms</h2>
+        <p class="card-desc">తరగతులు మరియు విద్యార్థులు</p>
+
+        <button class="btn btn-primary btn-block" onclick="showAddClassScreen()" style="margin-bottom: var(--space-lg);">
+          <i class="fas fa-plus" style="margin-right: 6px;"></i> కొత్త Class యాడ్ చేయండి
+        </button>
+
+        <div id="classroomsList">
+          <p style="color: var(--text-muted); text-align: center; padding: var(--space-md);">లోడ్ అవుతోంది...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== SCREEN 2: ADD/EDIT CLASS ========== -->
+    <section id="screenClassForm" class="screen hidden">
+      <div class="card">
+        <h2 class="card-title" id="classFormTitle">➕ కొత్త Class</h2>
+        <p class="card-desc" id="classFormDesc">Class వివరాలు నింపండి</p>
+
+        <form id="classForm" class="form" novalidate>
+          <div class="field">
+            <label for="className">Class పేరు</label>
+            <input type="text" id="className" required autocomplete="off" placeholder="ఉదా: 6th Class A" />
+          </div>
+
+          <p id="classError" class="form-error hidden" role="alert"></p>
+
+          <button type="submit" id="classSubmitBtn" class="btn btn-primary btn-block">
+            <i class="fas fa-save" style="margin-right: 8px;"></i> Save Class
+          </button>
+        </form>
+
+        <button type="button" class="link-btn" onclick="showScreen('list')">
+          <i class="fas fa-arrow-left"></i> వెనక్కి
+        </button>
+      </div>
+    </section>
+
+    <!-- ========== SCREEN 3: STUDENT LIST ========== -->
+    <section id="screenStudents" class="screen hidden">
+      <div class="card">
+        <h2 class="card-title" id="studentsTitle">👨‍🎓 Students</h2>
+        <p class="card-desc" id="studentsClassDesc">—</p>
+
+        <button class="btn btn-primary btn-block" onclick="showAddStudentScreen()" style="margin-bottom: var(--space-lg);">
+          <i class="fas fa-user-plus" style="margin-right: 6px;"></i> కొత్త Student యాడ్ చేయండి
+        </button>
+
+        <div id="studentsList">
+          <p style="color: var(--text-muted); text-align: center; padding: var(--space-md);">లోడ్ అవుతోంది...</p>
+        </div>
+
+        <button type="button" class="link-btn" onclick="showScreen('list')">
+          <i class="fas fa-arrow-left"></i> Classrooms కి తిరిగి
+        </button>
+      </div>
+    </section>
+
+    <!-- ========== SCREEN 4: ADD/EDIT STUDENT ========== -->
+    <section id="screenStudentForm" class="screen hidden">
+      <div class="card">
+        <h2 class="card-title" id="studentFormTitle">➕ కొత్త Student</h2>
+        <p class="card-desc" id="studentFormDesc">Student వివరాలు నింపండి</p>
+
+        <form id="studentForm" class="form" novalidate>
+          <div class="field">
+            <label for="studentRollNumber">Roll Number</label>
+            <input type="text" id="studentRollNumber" maxlength="10" inputmode="numeric" required autocomplete="off" placeholder="ఉదా: 01" />
+          </div>
+
+          <div class="field">
+            <label for="studentName">Student పేరు</label>
+            <input type="text" id="studentName" required autocomplete="off" placeholder="ఉదా: Ravi Kumar" />
+          </div>
+
+          <div class="field">
+            <label for="studentDob">పుట్టిన తేదీ (ddmmyy) — ఐచ్ఛికం</label>
+            <input type="text" id="studentDob" maxlength="6" inputmode="numeric" autocomplete="off" placeholder="ఉదా: 150190" />
+          </div>
+
+          <div class="field">
+            <label for="studentParentPhone">Parent Phone (10 అంకెలు) — ఐచ్ఛికం</label>
+            <input type="tel" id="studentParentPhone" maxlength="10" inputmode="numeric" autocomplete="off" placeholder="ఉదా: 9876543210" />
+          </div>
+
+          <p id="studentError" class="form-error hidden" role="alert"></p>
+
+          <button type="submit" id="studentSubmitBtn" class="btn btn-primary btn-block">
+            <i class="fas fa-save" style="margin-right: 8px;"></i> Save Student
+          </button>
+        </form>
+
+        <button type="button" class="link-btn" onclick="showScreen('students')">
+          <i class="fas fa-arrow-left"></i> Students కి తిరిగి
+        </button>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="app-footer">
+      An initiative of <span class="valiass-link" onclick="UI.showContact()">@valiass</span> team
+    </footer>
+
+  </main>
+
+  <!-- TOAST CONTAINER -->
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <!-- ==================== FIREBASE SDKs ==================== -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+
+  <!-- ==================== APP SCRIPTS ==================== -->
+  <script src="js/config.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/pages/hm-classrooms.js"></script>
+</body>
+</html>
