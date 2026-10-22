@@ -15,16 +15,15 @@ const UI = {
     initAutoBackButton: function() {
         const header = document.querySelector('.app-header');
         
-        // హెడర్ లేకపోతే ఆపు
         if (!header) return;
         
-        // ఒకవేళ ఇప్పటికే పాత బ్యాక్ బటన్ (id="backBtn") ఉంటే దాన్ని తీసేయి
+        // పాత బ్యాక్ బటన్ ఉంటే తీసేయి
         const existingBackBtn = header.querySelector('#backBtn');
         if (existingBackBtn) {
             existingBackBtn.remove();
         }
 
-        // ఒకవేళ ఆటోమేటిక్ బ్యాక్ బటన్ ఇప్పటికే ఉంటే ఆపు
+        // ఆటోమేటిక్ బ్యాక్ బటన్ ఇప్పటికే ఉంటే ఆపు
         if (header.querySelector('.auto-back-btn')) return;
 
         // కొత్త బ్యాక్ బటన్ క్రియేట్ చేయి
@@ -41,6 +40,17 @@ const UI = {
 
         // హెడర్ లో మొదటి ఎలిమెంట్ గా యాడ్ చేయి
         header.insertBefore(backBtn, header.firstChild);
+
+        // ✅ ముఖ్యం: పేజీ స్క్రిప్ట్స్ బ్యాక్ బటన్ ని హైడ్ చేయడానికి ప్రయత్నిస్తే ఆపడానికి ఒక గార్డ్
+        // ప్రతి 500ms కి ఒకసారి చెక్ చేసి, బటన్ కనిపించేలా చూస్తుంది
+        setInterval(() => {
+            if (backBtn && backBtn.style.visibility === 'hidden') {
+                backBtn.style.visibility = 'visible';
+            }
+            if (backBtn && backBtn.classList.contains('hidden')) {
+                backBtn.classList.remove('hidden');
+            }
+        }, 500);
     },
 
     // =====================================================
