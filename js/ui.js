@@ -5,6 +5,34 @@ const UI = {
     initLayout: function() {
         this.refreshHeader();
         this.renderFooter();
+        // ✅ హెడర్ రెండర్ అయ్యాక ఆటోమేటిక్ గా బ్యాక్ బటన్ ని యాడ్ చేయి
+        this.initAutoBackButton(); 
+    },
+
+    // =====================================================
+    // AUTO BACK BUTTON (అన్ని పేజీలకు)
+    // =====================================================
+    initAutoBackButton: function() {
+        const header = document.querySelector('.app-header');
+        
+        // హెడర్ లేకపోతే లేదా ఇప్పటికే బ్యాక్ బటన్ ఉంటే ఆపు
+        if (!header) return;
+        if (header.querySelector('.auto-back-btn')) return;
+
+        // బ్యాక్ బటన్ క్రియేట్ చేయి
+        const backBtn = document.createElement('button');
+        backBtn.className = 'icon-btn back-btn auto-back-btn';
+        backBtn.setAttribute('aria-label', 'Back');
+        backBtn.setAttribute('title', 'వెనక్కి');
+        backBtn.innerHTML = '<i class="fas fa-arrow-left"></i>';
+        
+        // క్లిక్ చేస్తే హోమ్ పేజీకి వెళ్లు
+        backBtn.addEventListener('click', () => {
+            window.location.href = 'index.html';
+        });
+
+        // హెడర్ లో మొదటి ఎలిమెంట్ గా యాడ్ చేయి (Title కి ముందు)
+        header.insertBefore(backBtn, header.firstChild);
     },
 
     // =====================================================
