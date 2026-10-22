@@ -2,6 +2,7 @@
 
 let currentScreen = 'loading';
 let currentSchoolData = null;
+let isPinVisible = false;
 
 // =====================================================
 // INIT
@@ -49,29 +50,10 @@ async function decideScreen() {
             }
         }
 
-        // ✅ HM PIN ను వ్యూ చేయడానికి ఫంక్షన్ కాల్ చేయి
-        await fetchHmPinForView();
-
         showScreen('login');
     } catch (error) {
         console.error('Screen decision error:', error);
         showScreen('login');
-    }
-}
-
-// ✅ HM PIN తెచ్చి చూపించే కొత్త ఫంక్షన్
-async function fetchHmPinForView() {
-    try {
-        const doc = await db.collection('schoolInfo').doc('main').get();
-        const pinInput = document.getElementById('viewHmPin');
-        if (doc.exists && pinInput) {
-            const data = doc.data();
-            pinInput.value = data.hmPin || 'సెటప్ చేయలేదు';
-        } else if (pinInput) {
-            pinInput.value = 'సెటప్ చేయలేదు';
-        }
-    } catch (error) {
-        console.error('Error fetching HM PIN:', error);
     }
 }
 
@@ -211,10 +193,35 @@ function bindEvents() {
 }
 
 // =====================================================
-// ADMIN LOGIN (Firebase Auth Email/Password)
+// VIEW / HIDE HM PIN (Edit Principal లో)
+// =====================================================
+function toggleViewPin() {
+    const pinDisplay = document.getElementById('editHmPinDisplay');
+    const pinIcon = document.getElementById('viewPinIcon');
+    
+    if (!currentSchoolData) return;
+
+    const actualPin = currentSchoolData.hmPin || '—';
+
+    if (isPinVisible) {
+        // Hide
+        pinDisplay.textContent = '••••••';
+        pinDisplay.style.color = 'var(--danger)';
+        pinIcon.className = 'fas fa-eye';
+        isPinVisible = false;
+    } else {
+        // Show
+        pinDisplay.textContent = actualPin;
+        pinDisplay.style.color = 'var(--success)';
+        pinIcon.className = 'fas fa-eye-slash';
+        isPinVisible = true;
+    }
+}
+
+// =====================================================
+// ADMIN LOGIN
 // =====================================================
 async function handleAdminLogin() {
-    // ✅ Email లో స్పేస్ ఉంటే తీసేయి
     const email = document.getElementById('adminEmail').value.trim().replace(/\s/g, ''); 
     const password = document.getElementById('adminPassword').value;
     const errorEl = document.getElementById('adminLoginError');
@@ -232,7 +239,6 @@ async function handleAdminLogin() {
         const cred = await firebase.auth().signInWithEmailAndPassword(email, password);
         const uid = cred.user.uid;
 
-        // admins collection లో UID ఉందా చెక్ చేయి
         const adminDoc = await db.collection('admins').doc(uid).get();
         if (!adminDoc.exists) {
             await firebase.auth().signOut();
@@ -353,6 +359,16 @@ async function loadEditPrincipal() {
             ? '<i class="fas fa-lock" style="margin-right: 8px;"></i> Disable HM'
             : '<i class="fas fa-unlock" style="margin-right: 8px;"></i> Enable HM';
 
+        // ✅ PIN వ్యూ సెక్షన్ రీసెట్ చేయి
+        const pinDisplay = document.getElementById('editHmPinDisplay');
+        if (pinDisplay) {
+            pinDisplay.textContent = '••••••';
+            pinDisplay.style.color = 'var(--danger)';
+            isPinVisible = false;
+            const pinIcon = document.getElementById('viewPinIcon');
+            if (pinIcon) pinIcon.className = 'fas fa-eye';
+        }
+
         showScreen('edit');
     } catch (err) {
         console.error('Load edit error:', err);
@@ -396,169 +412,4 @@ async function handleEditHm() {
 
         await db.collection('schoolInfo').doc('main').update(updateData);
         UI.toast('✅ వివరాలు విజయవంతంగా అప్‌డేట్ అయ్యాయి!', 'success');
-        showScreen('edit');
-        loadEditPrincipal();
-    } catch (err) {
-        console.error('Edit error:', err);
-        showFormError(errorEl, 'అప్‌డేట్ విఫలమైంది. మళ్లీ ప్రయత్నించండి.');
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-save" style="margin-right: 8px;"></i> Save Changes';
-    }
-}
-
-// Load edit form with current data
-function loadEditForm() {
-    if (!currentSchoolData) {
-        loadEditPrincipal().then(() => loadEditForm());
-        return;
-    }
-    document.getElementById('editHmName').value = currentSchoolData.hmName || '';
-    document.getElementById('editSchoolName').value = currentSchoolData.schoolName || '';
-    document.getElementById('editDistrict').value = currentSchoolData.district || '';
-    document.getElementById('editMandal').value = currentSchoolData.mandal || '';
-    document.getElementById('editVillage').value = currentSchoolData.village || '';
-    document.getElementById('editHmPin').value = '';
-    showScreen('editForm');
-}
-
-// Override showScreen for editForm to load data
-const _originalShowScreen = showScreen;
-showScreen = function(name) {
-    _originalShowScreen(name);
-    if (name === 'editForm') loadEditForm();
-};
-
-// =====================================================
-// DISABLE / ENABLE HM
-// =====================================================
-async function handleDisable() {
-    try {
-        const doc = await db.collection('schoolInfo').doc('main').get();
-        if (!doc.exists) return;
-
-        const data = doc.data();
-        const isActive = data.hm?.isActive !== false;
-        const action = isActive ? 'disable' : 'enable';
-
-        if (!confirm(isActive ? 'HM ని Disable చేయాలా? వారు login చేయలేరు.' : 'HM ని Enable చేయాలా?')) return;
-
-        await db.collection('schoolInfo').doc('main').update({
-            'hm.isActive': !isActive,
-            'hm.disabledAt': isActive ? firebase.firestore.FieldValue.serverTimestamp() : null
-        });
-
-        await logHmHistory(action, data.hmName);
-        UI.toast(`✅ HM ${isActive ? 'disable' : 'enable'} అయ్యారు!`, 'success');
-        loadEditPrincipal();
-    } catch (err) {
-        console.error('Disable error:', err);
-        UI.toast('లోపం. మళ్లీ ప్రయత్నించండి.', 'error');
-    }
-}
-
-// =====================================================
-// TRANSFER HM
-// =====================================================
-async function handleTransfer() {
-    const newName = document.getElementById('transferNewName').value.trim();
-    const newPin = document.getElementById('transferNewPin').value;
-    const newPinConfirm = document.getElementById('transferNewPinConfirm').value;
-    const errorEl = document.getElementById('transferError');
-    const btn = document.getElementById('transferSubmitBtn');
-
-    if (!newName) return showFormError(errorEl, 'కొత్త HM పేరు నింపండి.');
-    if (!/^\d{6}$/.test(newPin)) return showFormError(errorEl, 'PIN 6 అంకెలు ఉండాలి.');
-    if (newPin !== newPinConfirm) return showFormError(errorEl, 'PIN మ్యాచ్ అవ్వలేదు.');
-
-    if (!confirm(`HM ని ${newName} కి transfer చేయాలా? పాత HM disable అవుతారు.`)) return;
-
-    btn.disabled = true;
-    btn.innerHTML = 'ట్రాన్స్ఫర్ అవుతోంది...';
-    hideFormError(errorEl);
-
-    try {
-        const doc = await db.collection('schoolInfo').doc('main').get();
-        const oldName = doc.exists ? (doc.data().hmName || '') : '';
-
-        await db.collection('schoolInfo').doc('main').update({
-            hmName: newName,
-            hmPin: newPin,
-            'hm.isActive': true,
-            'hm.transferredAt': firebase.firestore.FieldValue.serverTimestamp()
-        });
-
-        await logHmHistory('transfer', newName, oldName);
-        UI.toast(`✅ HM ${oldName} → ${newName} కి transfer అయ్యారు!`, 'success');
-        document.getElementById('transferNewName').value = '';
-        document.getElementById('transferNewPin').value = '';
-        document.getElementById('transferNewPinConfirm').value = '';
-        loadEditPrincipal();
-    } catch (err) {
-        console.error('Transfer error:', err);
-        showFormError(errorEl, 'ట్రాన్స్ఫర్ విఫలమైంది.');
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-exchange-alt" style="margin-right: 8px;"></i> Confirm Transfer';
-    }
-}
-
-// =====================================================
-// DELETE HM
-// =====================================================
-async function handleDelete() {
-    if (!confirm('⚠️ HM ని పూర్తిగా Delete చేయాలా? ఇది తిరిగి తీసుకోలేము!')) return;
-    if (!confirm('మళ్లీ నిర్ధారించండి: HM మరియు పాఠశాల వివరాలు తీసేయబడతాయి. కొనసాగించాలా?')) return;
-
-    try {
-        const doc = await db.collection('schoolInfo').doc('main').get();
-        const oldName = doc.exists ? (doc.data().hmName || '') : '';
-
-        await db.collection('schoolInfo').doc('main').delete();
-        await logHmHistory('delete', oldName);
-        UI.toast('🗑️ HM మరియు పాఠశాల వివరాలు Delete అయ్యాయి. తిరిగి Setup చేయండి.', 'success');
-        currentSchoolData = null;
-        showScreen('dashboard');
-    } catch (err) {
-        console.error('Delete error:', err);
-        UI.toast('Delete విఫలమైంది. మళ్లీ ప్రయత్నించండి.', 'error');
-    }
-}
-
-// =====================================================
-// HM HISTORY LOG
-// =====================================================
-async function logHmHistory(action, hmName, oldName) {
-    try {
-        await db.collection('hmHistory').add({
-            action: action,
-            hmName: hmName || '',
-            oldName: oldName || '',
-            date: firebase.firestore.FieldValue.serverTimestamp(),
-            by: 'Valiass Admin',
-            adminUid: firebase.auth().currentUser?.uid || ''
-        });
-    } catch (e) {
-        console.warn('History log failed:', e);
-    }
-}
-
-// =====================================================
-// FORM ERROR HELPERS
-// =====================================================
-function showFormError(el, message) {
-    if (el) {
-        el.textContent = message;
-        el.classList.remove('hidden');
-    } else if (typeof UI !== 'undefined') {
-        UI.toast(message, 'error');
-    } else {
-        alert(message);
-    }
-}
-
-function hideFormError(el) {
-    if (!el) return;
-    el.textContent = '';
-    el.classList.add('hidden');
-}
+        showScreen('edit
