@@ -1,9 +1,18 @@
 // js/pages/hm-staff.js
 
 let currentScreen = 'list';
-let currentStaffType = 'teacher'; // 'teacher' | 'cook'
+let currentStaffType = 'teacher';
 let editingStaffId = null;
 let allStaff = [];
+
+// Class & Subject మాస్టర్ లిస్ట్
+const CLASSES = {
+    'Class 1': ['Telugu', 'English', 'Maths'],
+    'Class 2': ['Telugu', 'English', 'Maths'],
+    'Class 3': ['Telugu', 'English', 'Maths', 'EVS'],
+    'Class 4': ['Telugu', 'English', 'Maths', 'EVS'],
+    'Class 5': ['Telugu', 'English', 'Maths', 'EVS']
+};
 
 // =====================================================
 // INIT
@@ -68,14 +77,6 @@ function bindEvents() {
         });
     }
 
-    const backBtn = document.getElementById('backBtn');
-    if (backBtn) {
-        backBtn.addEventListener('click', () => {
-            if (currentScreen === 'form') showScreen('list');
-            else window.location.href = 'hm-dashboard.html';
-        });
-    }
-
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
@@ -83,19 +84,6 @@ function bindEvents() {
         });
     }
 
-    // PIN toggle
-    document.querySelectorAll('.pin-toggle').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const targetId = btn.getAttribute('data-target');
-            const input = document.getElementById(targetId);
-            if (!input) return;
-            const isPwd = input.type === 'password';
-            input.type = isPwd ? 'text' : 'password';
-            btn.textContent = isPwd ? '🙈' : '👁';
-        });
-    });
-
-    // Numeric inputs
     const phoneInput = document.getElementById('staffPhone');
     if (phoneInput) {
         phoneInput.addEventListener('input', () => {
@@ -110,14 +98,6 @@ function bindEvents() {
         });
     }
 
-    const pinInput = document.getElementById('staffMasterPin');
-    if (pinInput) {
-        pinInput.addEventListener('input', () => {
-            pinInput.value = pinInput.value.replace(/\D/g, '').slice(0, 4);
-        });
-    }
-
-    // Form submit
     const staffForm = document.getElementById('staffForm');
     if (staffForm) {
         staffForm.addEventListener('submit', (e) => {
@@ -172,16 +152,23 @@ function renderStaffGroup(containerId, list, role) {
         return;
     }
 
-    container.innerHTML = list.map(staff => `
-        <div class="card" style="padding: var(--space-md); margin-bottom: var(--space-sm);">
+    container.innerHTML = list.map(staff => {
+        const assignmentsText = staff.assignments && staff.assignments.length > 0
+            ? staff.assignments.map(a => `${a.className} - ${a.subject}`).join(', ')
+            : '—';
+
+        return `
+        <div class="card" style="padding: var(--space-md); margin-bottom: var(--space-sm); border-left: 4px solid ${staff.isActive ? 'var(--success)' : 'var(--danger)'};">
             <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                 <div style="flex: 1;">
                     <h4 style="font-size: 1rem; margin-bottom: 4px;">${escapeHtml(staff.name || '—')}</h4>
                     <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 2px;">
-                        <i class="fas fa-phone"></i> ${escapeHtml(staff.phone || '—')}
+                        <i class="fas fa-phone"></i> ${escapeHtml(staff.phone || '—')} (Login ID)
                     </p>
-                    ${staff.teacherId ? `<p style="font-size: 0.75rem; color: var(--primary);">ID: ${escapeHtml(staff.teacherId)}</p>` : ''}
-                    ${staff.subject ? `<p style="font-size: 0.75rem; color: var(--text-muted);">Subject: ${escapeHtml(staff.subject)}</p>` : ''}
+                    <p style="font-size: 0.75rem; color: var(--primary); font-weight: 600;">
+                        🔑 PIN: ${escapeHtml(staff.masterPin || '—')}
+                    </p>
+                    ${role === 'teacher' ? `<p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">📚 ${escapeHtml(assignmentsText)}</p>` : ''}
                     <p style="font-size: 0.7rem; color: ${staff.isActive ? 'var(--success)' : 'var(--danger)'}; margin-top: 4px;">
                         ${staff.isActive ? '✅ Active' : '🔒 Inactive'}
                     </p>
@@ -190,13 +177,35 @@ function renderStaffGroup(containerId, list, role) {
                     <button class="icon-btn" onclick="editStaff('${staff.id}')" title="Edit" style="width: 36px; height: 36px; background: var(--primary); color: #fff;">
                         <i class="fas fa-edit" style="font-size: 0.9rem;"></i>
                     </button>
+                    <button class="icon-btn" onclick="toggleStaffStatus('${staff.id}', ${staff.isActive})" title="${staff.isActive ? 'Disable' : 'Enable'}" style="width: 36px; height: 36px; background: ${staff.isActive ? '#F57C00' : 'var(--success)'}; color: #fff;">
+                        <i class="fas ${staff.isActive ? 'fa-lock' : 'fa-unlock'}" style="font-size: 0.9rem;"></i>
+                    </button>
                     <button class="icon-btn" onclick="deleteStaff('${staff.id}', '${escapeHtml(staff.name || '')}')" title="Delete" style="width: 36px; height: 36px; background: var(--danger); color: #fff;">
                         <i class="fas fa-trash" style="font-size: 0.9rem;"></i>
                     </button>
                 </div>
             </div>
         </div>
-    `).join('');
+    `}).join('');
+}
+
+// =====================================================
+// TOGGLE ACTIVE/INACTIVE (Disable/Enable)
+// =====================================================
+async function toggleStaffStatus(staffId, currentStatus) {
+    const action = currentStatus ? 'Disable' : 'Enable';
+    if (!confirm(`ఈ స్టాఫ్ ని ${action} చేయాలా?`)) return;
+
+    try {
+        await db.collection('users').doc(staffId).update({
+            isActive: !currentStatus
+        });
+        UI.toast(`✅ స్టాఫ్ ${action} అయ్యారు!`, 'success');
+        await loadStaffList();
+    } catch (error) {
+        console.error('Toggle status error:', error);
+        UI.toast('❌ మార్పు విఫలమైంది.', 'error');
+    }
 }
 
 // =====================================================
@@ -209,17 +218,49 @@ function showAddScreen(type) {
     document.getElementById('formTitle').textContent = `➕ Add ${type === 'teacher' ? 'Teacher' : 'Cook'}`;
     document.getElementById('formDesc').textContent = `${type === 'teacher' ? 'Teacher' : 'Cook'} వివరాలు నింపండి`;
 
-    // Reset form
     document.getElementById('staffForm').reset();
     document.getElementById('staffError').classList.add('hidden');
 
-    // Show/hide teacher-specific fields
-    const subjectField = document.getElementById('staffSubject');
-    if (subjectField) {
-        subjectField.parentElement.style.display = type === 'teacher' ? 'flex' : 'none';
+    const assignmentsSection = document.getElementById('teacherAssignmentsSection');
+    if (assignmentsSection) {
+        if (type === 'teacher') {
+            assignmentsSection.style.display = 'block';
+            renderAssignmentCheckboxes();
+        } else {
+            assignmentsSection.style.display = 'none';
+        }
     }
 
     showScreen('form');
+}
+
+// =====================================================
+// RENDER CLASS & SUBJECT CHECKBOXES
+// =====================================================
+function renderAssignmentCheckboxes(selectedAssignments = []) {
+    const container = document.getElementById('assignmentsContainer');
+    if (!container) return;
+
+    let html = '';
+    for (const [className, subjects] of Object.entries(CLASSES)) {
+        html += `<div style="margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border-color);">
+            <p style="font-weight: 700; color: var(--primary); margin-bottom: 6px;">🏫 ${className}</p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">`;
+
+        subjects.forEach(subject => {
+            const isChecked = selectedAssignments.some(a => a.className === className && a.subject === subject);
+            const id = `assign_${className.replace(/\s/g, '')}_${subject}`;
+            html += `
+                <label style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; padding: 4px; cursor: pointer;">
+                    <input type="checkbox" value="${className}|${subject}" ${isChecked ? 'checked' : ''} style="width: 18px; height: 18px;" />
+                    <span>${subject}</span>
+                </label>
+            `;
+        });
+
+        html += `</div></div>`;
+    }
+    container.innerHTML = html;
 }
 
 // =====================================================
@@ -238,14 +279,16 @@ function editStaff(staffId) {
     document.getElementById('staffName').value = staff.name || '';
     document.getElementById('staffPhone').value = staff.phone || '';
     document.getElementById('staffDob').value = staff.dob || '';
-    document.getElementById('staffSubject').value = staff.subject || '';
-    document.getElementById('staffMasterPin').value = staff.masterPin || '';
     document.getElementById('staffError').classList.add('hidden');
 
-    // Show/hide teacher-specific fields
-    const subjectField = document.getElementById('staffSubject');
-    if (subjectField) {
-        subjectField.parentElement.style.display = currentStaffType === 'teacher' ? 'flex' : 'none';
+    const assignmentsSection = document.getElementById('teacherAssignmentsSection');
+    if (assignmentsSection) {
+        if (currentStaffType === 'teacher') {
+            assignmentsSection.style.display = 'block';
+            renderAssignmentCheckboxes(staff.assignments || []);
+        } else {
+            assignmentsSection.style.display = 'none';
+        }
     }
 
     showScreen('form');
@@ -258,21 +301,25 @@ async function handleSaveStaff() {
     const name = document.getElementById('staffName').value.trim();
     const phone = document.getElementById('staffPhone').value.trim();
     const dob = document.getElementById('staffDob').value.trim();
-    const subject = document.getElementById('staffSubject').value.trim();
-    const masterPin = document.getElementById('staffMasterPin').value.trim();
     const errorEl = document.getElementById('staffError');
     const btn = document.getElementById('staffSubmitBtn');
 
-    // Validation
     if (!name) return showFormError(errorEl, 'పేరు నింపండి.');
     if (!/^\d{10}$/.test(phone)) return showFormError(errorEl, 'ఫోన్ నంబర్ 10 అంకెలు ఉండాలి.');
     if (!/^\d{6}$/.test(dob)) return showFormError(errorEl, 'పుట్టిన తేదీ ddmmyy ఫార్మాట్ లో 6 అంకెలు ఉండాలి.');
 
-    const finalMasterPin = masterPin || (('9999' + phone.slice(-4)).slice(0, 4) === '9999' ? '9999' : ('9999'.slice(0, 4)));
+    // Master PIN ఆటోమేటిక్ జనరేట్ (చివరి 4 అంకెలు)
+    const autoPin = phone.slice(-4);
 
-    // Auto-generate master PIN: 9999 + last 4 of phone
-    // Per blueprint: Teacher/Cook Master PIN = 9999 - Phone Last 4
-    const autoMasterPin = '9999';
+    // Teacher అయితే, సెలెక్ట్ చేసిన అసైన్‌మెంట్స్ తీసుకో
+    let assignments = [];
+    if (currentStaffType === 'teacher') {
+        const checkboxes = document.querySelectorAll('#assignmentsContainer input[type="checkbox"]:checked');
+        assignments = Array.from(checkboxes).map(cb => {
+            const [className, subject] = cb.value.split('|');
+            return { className, subject };
+        });
+    }
 
     btn.disabled = true;
     btn.innerHTML = 'సేవ్ అవుతోంది...';
@@ -284,23 +331,19 @@ async function handleSaveStaff() {
             name: name,
             phone: phone,
             dob: dob,
-            masterPin: masterPin || autoMasterPin,
+            masterPin: autoPin,
             isActive: true,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
 
         if (currentStaffType === 'teacher') {
-            staffData.subject = subject;
-            staffData.teacherId = `919720-${dob}`;
-            staffData.assignments = [];
+            staffData.assignments = assignments;
         }
 
         if (editingStaffId) {
-            // Update
             await db.collection('users').doc(editingStaffId).update(staffData);
             UI.toast('✅ Staff వివరాలు అప్‌డేట్ అయ్యాయి!', 'success');
         } else {
-            // Create
             staffData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
             await db.collection('users').add(staffData);
             UI.toast('✅ Staff విజయవంతంగా యాడ్ అయ్యారు!', 'success');
