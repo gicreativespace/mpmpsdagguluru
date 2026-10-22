@@ -1,15 +1,12 @@
 // js/pages/parent.js
 
 let currentScreen = 'login';
-let currentParent = null; // { studentId, studentName, className, classroomId, rollNumber }
+let currentParent = null;
 let currentTab = 'notices';
 let allNotices = [];
 let allDiaries = [];
 let allAttendance = [];
 
-// =====================================================
-// INIT
-// =====================================================
 document.addEventListener('DOMContentLoaded', async () => {
     const savedTheme = localStorage.getItem('dm_theme') || 'light';
     document.body.setAttribute('data-theme', savedTheme);
@@ -31,9 +28,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     bindEvents();
 });
 
-// =====================================================
-// SCREEN DECISION
-// =====================================================
 async function decideScreen() {
     try {
         if (typeof authReady !== 'undefined') {
@@ -72,9 +66,6 @@ async function decideScreen() {
     }
 }
 
-// =====================================================
-// SCREEN SWITCHER
-// =====================================================
 function showScreen(name) {
     currentScreen = name;
     ['login', 'dashboard'].forEach(s => {
@@ -84,11 +75,7 @@ function showScreen(name) {
     const target = document.getElementById('screen' + capitalize(name));
     if (target) target.classList.remove('hidden');
 
-    const backBtn = document.getElementById('backBtn');
-    if (backBtn) {
-        if (name === 'dashboard') backBtn.classList.remove('hidden');
-        else backBtn.classList.add('hidden');
-    }
+    // ✅ backBtn కంట్రోల్ తీసేయబడింది.
 
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
@@ -106,9 +93,6 @@ function capitalize(s) {
     return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-// =====================================================
-// EVENT BINDINGS
-// =====================================================
 function bindEvents() {
     const themeBtn = document.getElementById('themeBtn');
     if (themeBtn) {
@@ -119,13 +103,7 @@ function bindEvents() {
         });
     }
 
-    const backBtn = document.getElementById('backBtn');
-    if (backBtn) {
-        backBtn.addEventListener('click', () => {
-            if (currentScreen === 'dashboard') window.location.href = 'index.html';
-            else showScreen('login');
-        });
-    }
+    // ✅ backBtn ఈవెంట్ తీసేయబడింది.
 
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
@@ -160,9 +138,6 @@ function bindEvents() {
     }
 }
 
-// =====================================================
-// PARENT LOGIN
-// =====================================================
 async function handleParentLogin() {
     const rollNumber = document.getElementById('parentRollNumber').value.trim();
     const dob = document.getElementById('parentDob').value.trim();
@@ -177,10 +152,8 @@ async function handleParentLogin() {
     hideFormError(errorEl);
 
     try {
-        // Step 1: Get all classrooms
         const classroomsSnap = await db.collection('classrooms').get();
 
-        // Step 2: Search for student in each classroom's students subcollection
         let foundStudent = null;
         let foundClassroom = null;
 
@@ -194,7 +167,6 @@ async function handleParentLogin() {
 
             for (const studentDoc of studentsSnap.docs) {
                 const studentData = studentDoc.data();
-                // Check DOB match
                 if (String(studentData.dob || '').trim() === dob) {
                     foundStudent = { id: studentDoc.id, ...studentData };
                     foundClassroom = { id: classDoc.id, ...classData };
@@ -208,7 +180,6 @@ async function handleParentLogin() {
             return showFormError(errorEl, '❌ విద్యార్థి వివరాలు కనుగొనబడలేదు. Roll Number మరియు DOB చెక్ చేయండి.');
         }
 
-        // Save session
         currentParent = {
             studentId: foundStudent.id,
             studentName: foundStudent.name || '—',
@@ -231,9 +202,6 @@ async function handleParentLogin() {
     }
 }
 
-// =====================================================
-// LOAD DASHBOARD DATA
-// =====================================================
 async function loadDashboardData() {
     if (!currentParent) return;
 
@@ -247,9 +215,6 @@ async function loadDashboardData() {
     switchTab('notices');
 }
 
-// =====================================================
-// LOAD NOTICES
-// =====================================================
 async function loadNotices() {
     try {
         const snapshot = await db.collection('noticeBoard').get();
@@ -267,9 +232,6 @@ async function loadNotices() {
     }
 }
 
-// =====================================================
-// LOAD DIARIES (for student's class)
-// =====================================================
 async function loadDiaries() {
     try {
         const snapshot = await db.collection('diary')
@@ -286,9 +248,6 @@ async function loadDiaries() {
     }
 }
 
-// =====================================================
-// LOAD ATTENDANCE (for student)
-// =====================================================
 async function loadAttendance() {
     try {
         const snapshot = await db.collection('attendance')
@@ -306,9 +265,6 @@ async function loadAttendance() {
     }
 }
 
-// =====================================================
-// TAB SWITCH
-// =====================================================
 function switchTab(tab) {
     currentTab = tab;
 
@@ -322,9 +278,6 @@ function switchTab(tab) {
     renderContent();
 }
 
-// =====================================================
-// RENDER CONTENT
-// =====================================================
 function renderContent() {
     const container = document.getElementById('parentContent');
     if (!container) return;
@@ -429,9 +382,6 @@ function renderAttendanceContent(container) {
     `;
 }
 
-// =====================================================
-// HELPERS
-// =====================================================
 function emptyState(icon, message) {
     return `
         <div class="card" style="text-align: center; padding: var(--space-xl);">
