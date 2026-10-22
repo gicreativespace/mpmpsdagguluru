@@ -273,6 +273,10 @@ function markLoginDotError() {
 // =====================================================
 async function handleSetup() {
     const district = document.getElementById('setupDistrict').value.trim();
+    // ✅ District ఎంచుకున్నారా చెక్
+if (!district) {
+    return showFormError(errorEl, 'జిల్లా ఎంచుకోండి.');
+}
     const mandal = document.getElementById('setupMandal').value.trim();
     const village = document.getElementById('setupVillage').value.trim();
     const school = document.getElementById('setupSchool').value.trim();
