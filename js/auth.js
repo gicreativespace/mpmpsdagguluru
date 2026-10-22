@@ -2,7 +2,7 @@
 const Auth = {
 
     // =====================================================
-    // HM LOGIN — 6 అంకెల PIN
+    // HM LOGIN — 6 అంకెల PIN + Active చెక్
     // =====================================================
     loginHM: async function(enteredPin) {
         try {
@@ -37,6 +37,11 @@ const Auth = {
                 return { success: false, message: `తప్పు PIN. (${failCount}/5)`, failCount };
             }
 
+            // ✅ HM Active చెక్ — Valiass Disable చేసి ఉంటే login కాకూడదు
+            if (schoolData.hm && schoolData.hm.isActive === false) {
+                return { success: false, message: "🔒 మీ ఖాతా నిలిపివేయబడింది. Valiass టీమ్‌ను సంప్రదించండి." };
+            }
+
             localStorage.removeItem('dm_fail_count');
             localStorage.removeItem('dm_lock_until');
 
@@ -50,7 +55,7 @@ const Auth = {
     },
 
     // =====================================================
-    // HM SETUP — 6 అంకెల PIN
+    // HM SETUP — 6 అంకెల PIN + hm.isActive
     // =====================================================
     setupHM: async function(setupData) {
         try {
@@ -81,6 +86,11 @@ const Auth = {
                 valiassCode: setupData.valiassCode,
                 isSetupComplete: true,
                 hmDob: null,
+                hm: {
+                    isActive: true,
+                    disabledAt: null,
+                    transferredAt: null
+                },
                 sections: { teacher: false, cook: false, parent: false, office: false },
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
