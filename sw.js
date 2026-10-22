@@ -1,5 +1,5 @@
-// sw.js — Digital Manabadi Service Worker
-const CACHE_NAME = 'mpmp-cache-v4';
+// sw.js — Digital Manabadi Service Worker (Auto Update)
+const CACHE_NAME = 'mpmp-cache-v5'; // ⚠️ ప్రతిసారి కోడ్ మార్చినప్పుడు ఈ నంబర్ పెంచండి (v6, v7...)
 
 const urlsToCache = [
   './',
@@ -32,9 +32,11 @@ const urlsToCache = [
   './js/pages/parent.js'
 ];
 
-// INSTALL — ఫైల్స్ క్యాష్ చేయి
+// =====================================================
+// INSTALL — కొత్త ఫైల్స్ క్యాష్ చేయి + వెంటనే యాక్టివేట్ అవ్వు
+// =====================================================
 self.addEventListener('install', event => {
-  console.log('🔧 SW installing v4...');
+  console.log('🔧 SW installing:', CACHE_NAME);
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
@@ -43,23 +45,38 @@ self.addEventListener('install', event => {
           console.warn('⚠️ Some files failed to cache:', err);
         });
       })
-      .then(() => self.skipWaiting())
+      .then(() => {
+        // ✅ కొత్త SW వెయిటింగ్ లో ఉండకుండా వెంటనే యాక్టివేట్ అవ్వడానికి
+        return self.skipWaiting();
+      })
   );
 });
 
-// ACTIVATE — పాత క్యాష్ క్లియర్ చేయి
+// =====================================================
+// ACTIVATE — పాత క్యాష్ క్లియర్ చేయి + పేజీలను వెంటనే నియంత్రించు
+// =====================================================
 self.addEventListener('activate', event => {
-  console.log('🚀 SW activating v4...');
+  console.log('🚀 SW activating:', CACHE_NAME);
   event.waitUntil(
-    caches.keys().then(names => {
+    caches.keys().then(cacheNames => {
       return Promise.all(
-        names.filter(n => n !== CACHE_NAME).map(n => caches.delete(n))
+        cacheNames.map(cacheName => {
+          if (cacheName !== CACHE_NAME) {
+            console.log('🗑️ Deleting old cache:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
       );
-    }).then(() => self.clients.claim())
+    }).then(() => {
+      // ✅ ఇప్పటికే తెరిచి ఉన్న పేజీలను కూడా కొత్త SW నియంత్రణలోకి తీసుకోవడానికి
+      return self.clients.claim();
+    })
   );
 });
 
-// FETCH
+// =====================================================
+// FETCH — Network First (HTML), Cache First (Assets)
+// =====================================================
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
@@ -72,7 +89,7 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // HTML → network-first
+  // HTML → Network First (ఎప్పుడూ కొత్త ఫైల్ ని తీసుకురావడానికి ప్రయత్నించు)
   if (event.request.headers.get('accept')?.includes('text/html')) {
     event.respondWith(
       fetch(event.request)
@@ -86,9 +103,18 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // CSS/JS → cache-first
+  // CSS/JS/Images → Cache First (వేగంగా లోడ్ అవ్వడానికి)
   event.respondWith(
     caches.match(event.request)
       .then(response => response || fetch(event.request))
   );
+});
+
+// =====================================================
+// MESSAGE — పేజీ నుండి కమాండ్ వచ్చినప్పుడు SW అప్‌డేట్ చేయి
+// =====================================================
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
