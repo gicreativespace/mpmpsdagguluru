@@ -10,8 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- ✅ CACHE BUSTER: ?v=3 -->
-  <link rel="stylesheet" href="style.css?v=3" />
+  <link rel="stylesheet" href="style.css?v=4" />
 </head>
 <body class="page-hm">
 
@@ -28,6 +27,7 @@
 
     <!-- Header -->
     <header class="app-header">
+      <!-- ✅ పాత బ్యాక్ బటన్ అలాగే ఉంది. కానీ ui.js దీన్ని తీసేసి, కొత్తది పెడుతుంది -->
       <button id="backBtn" class="icon-btn back-btn hidden" aria-label="Back" title="వెనక్కి">
         <i class="fas fa-arrow-left"></i>
       </button>
@@ -46,7 +46,6 @@
 
         <form id="setupForm" class="form" novalidate>
 
-          <!-- ✅ District — Auto-fill Dropdown (AP Districts) -->
           <div class="field">
             <label for="setupDistrict">జిల్లా</label>
             <select id="setupDistrict" required>
@@ -97,7 +96,6 @@
             <input type="text" id="setupHmName" required autocomplete="off" />
           </div>
 
-          <!-- ✅ Valiass Setup Code — hint లేదు -->
           <div class="field">
             <label for="setupValiassCode">Valiass Setup Code</label>
             <input type="password" id="setupValiassCode" required autocomplete="off" inputmode="text" placeholder="Setup Code నమోదు చేయండి" />
@@ -223,6 +221,6 @@
   <script src="js/config.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/auth.js"></script>
-  <script src="js/pages/headmaster.js?v=3"></script>
+  <script src="js/pages/headmaster.js?v=4"></script>
 </body>
 </html>
