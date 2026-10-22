@@ -15,7 +15,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.documentElement.style.setProperty('--base-font-size', savedSize + 'px');
     }
 
-    // Splash hide
     setTimeout(async () => {
         const splash = document.getElementById('splash');
         const app = document.getElementById('hmApp');
@@ -149,7 +148,6 @@ function bindEvents() {
         });
     });
 
-    // Setup PIN — 6 అంకెలు
     const setupPin = document.getElementById('setupHmPin');
     if (setupPin) {
         setupPin.addEventListener('input', () => {
@@ -165,7 +163,6 @@ function bindEvents() {
         });
     }
 
-    // Login PIN — no auto-submit
     const loginPin = document.getElementById('loginPin');
     if (loginPin) {
         loginPin.addEventListener('input', () => {
@@ -221,13 +218,9 @@ function bindEvents() {
         resetBack.addEventListener('click', () => showScreen('login'));
     }
 
-    // =====================================================
-    // VALIASS ADMIN BUTTON
-    // =====================================================
     const valiassBtn = document.getElementById('valiassBtn');
     if (valiassBtn) {
         valiassBtn.addEventListener('click', () => {
-            // Valiass Admin పేజీకి వెళ్లు (లాగిన్ అక్కడే)
             window.location.href = 'valiass-admin.html';
         });
     }
@@ -269,14 +262,12 @@ function markLoginDotError() {
 }
 
 // =====================================================
-// HANDLE SETUP
+// HANDLE SETUP — ✅ FIXED (errorEl ముందే డిఫైన్)
 // =====================================================
 async function handleSetup() {
+    const errorEl = document.getElementById('setupError');
+    const btn = document.getElementById('setupSubmitBtn');
     const district = document.getElementById('setupDistrict').value.trim();
-    // ✅ District ఎంచుకున్నారా చెక్
-if (!district) {
-    return showFormError(errorEl, 'జిల్లా ఎంచుకోండి.');
-}
     const mandal = document.getElementById('setupMandal').value.trim();
     const village = document.getElementById('setupVillage').value.trim();
     const school = document.getElementById('setupSchool').value.trim();
@@ -284,10 +275,11 @@ if (!district) {
     const valiassCode = document.getElementById('setupValiassCode').value.trim();
     const pin = document.getElementById('setupHmPin').value;
     const pinConfirm = document.getElementById('setupHmPinConfirm').value;
-    const errorEl = document.getElementById('setupError');
-    const btn = document.getElementById('setupSubmitBtn');
 
-    if (!district || !mandal || !village || !school || !hmName) {
+    if (!district) {
+        return showFormError(errorEl, 'జిల్లా ఎంచుకోండి.');
+    }
+    if (!mandal || !village || !school || !hmName) {
         return showFormError(errorEl, 'అన్ని ఫీల్డ్స్ నింపండి.');
     }
     if (!/^\d{6}$/.test(pin)) {
