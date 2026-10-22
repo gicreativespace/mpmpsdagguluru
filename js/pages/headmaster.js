@@ -262,7 +262,7 @@ function markLoginDotError() {
 }
 
 // =====================================================
-// HANDLE SETUP — ✅ FIXED (errorEl ముందే డిఫైన్)
+// HANDLE SETUP — ✅ errorEl ముందే డిఫైన్
 // =====================================================
 async function handleSetup() {
     const errorEl = document.getElementById('setupError');
