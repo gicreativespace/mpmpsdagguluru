@@ -38,31 +38,44 @@
     </header>
 
     <!-- ========== SCREEN 1: LOGIN ========== -->
-    <section id="screenLogin" class="screen hidden">
-      <div class="card card-center">
-        <div class="login-icon">🔐</div>
-        <h2 class="card-title">Valiass Admin Login</h2>
-        <p class="card-desc">Admin క్రెడెన్షియల్స్ నమోదు చేయండి</p>
+<section id="screenLogin" class="screen hidden">
+  <div class="card card-center">
+    <div class="login-icon">🔐</div>
+    <h2 class="card-title">Valiass Admin Login</h2>
+    <p class="card-desc">Admin క్రెడెన్షియల్స్ నమోదు చేయండి</p>
 
-        <form id="adminLoginForm" class="form" novalidate>
-          <div class="field">
-            <label for="adminEmail">Email</label>
-            <input type="email" id="adminEmail" placeholder="valiass-admin@example.com" required autocomplete="username" />
-          </div>
-          <div class="field">
-            <label for="adminPassword">Password</label>
-            <div class="pin-wrap">
-              <input type="password" id="adminPassword" placeholder="Password నమోదు చేయండి" required autocomplete="current-password" />
-              <button type="button" class="pin-toggle" data-target="adminPassword" aria-label="Show Password">👁</button>
-            </div>
-          </div>
-          <p id="adminLoginError" class="form-error hidden" role="alert"></p>
-          <button type="submit" id="adminLoginBtn" class="btn btn-primary btn-block">
-            లాగిన్
-          </button>
-        </form>
+    <form id="adminLoginForm" class="form" novalidate>
+      <div class="field">
+        <label for="adminEmail">Email</label>
+        <!-- ✅ ఆటోమేటిక్ గా స్పేస్ తీసేయడానికి oninput వాడాము -->
+        <input type="email" id="adminEmail" placeholder="valiass-admin@example.com" required autocomplete="username" oninput="this.value = this.value.replace(/\s/g, '')" />
       </div>
-    </section>
+      
+      <div class="field">
+        <label for="adminPassword">Password</label>
+        <div class="pin-wrap">
+          <input type="password" id="adminPassword" placeholder="Password నమోదు చేయండి" required autocomplete="current-password" />
+          <button type="button" class="pin-toggle" data-target="adminPassword" aria-label="Show Password">👁</button>
+        </div>
+      </div>
+
+      <!-- ✅ కొత్తగా HM PIN చూపించే ఫీల్డ్ (కేవలం చదవడానికి మాత్రమే) -->
+      <div class="field" style="margin-top: var(--space-md);">
+        <label for="viewHmPin" style="color: var(--primary);">HM Login PIN</label>
+        <div class="pin-wrap">
+          <input type="text" id="viewHmPin" placeholder="HM PIN లోడ్ అవుతోంది..." readonly style="background: var(--bg-color); text-align: center; letter-spacing: 4px; font-weight: bold;" />
+        </div>
+        <small class="field-hint">ఇది HM లాగిన్ కోసం వాడే PIN. దీన్ని మార్చాలంటే Edit Principal కి వెళ్లండి.</small>
+      </div>
+
+      <p id="adminLoginError" class="form-error hidden" role="alert"></p>
+
+      <button type="submit" id="adminLoginBtn" class="btn btn-primary btn-block">
+        లాగిన్
+      </button>
+    </form>
+  </div>
+</section>
 
     <!-- ========== SCREEN 2: DASHBOARD ========== -->
     <section id="screenDashboard" class="screen hidden">
