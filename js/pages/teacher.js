@@ -4,6 +4,9 @@ let currentScreen = 'login';
 let currentTeacher = null;
 let allTeacherDiaries = [];
 
+// =====================================================
+// INIT
+// =====================================================
 document.addEventListener('DOMContentLoaded', async () => {
     const savedTheme = localStorage.getItem('dm_theme') || 'light';
     document.body.setAttribute('data-theme', savedTheme);
@@ -38,6 +41,15 @@ async function decideScreen() {
         if (session) {
             const s = JSON.parse(session);
             currentTeacher = s;
+            
+            // ✅ పేరు లోకల్ స్టోరేజ్ లో ఉందా చెక్ చేయి
+            const savedName = localStorage.getItem('dm_teacher_name');
+            if (!savedName) {
+                showScreen('namePrompt');
+                return;
+            }
+
+            currentTeacher.name = savedName;
             await loadTeacherData();
             showScreen('dashboard');
             return;
@@ -65,18 +77,16 @@ async function decideScreen() {
 
 function showScreen(name) {
     currentScreen = name;
-    ['login', 'dashboard', 'diary', 'leave'].forEach(s => {
+    ['login', 'namePrompt', 'dashboard', 'diary', 'leave'].forEach(s => {
         const el = document.getElementById('screen' + capitalize(s));
         if (el) el.classList.add('hidden');
     });
     const target = document.getElementById('screen' + capitalize(name));
     if (target) target.classList.remove('hidden');
 
-    // ✅ backBtn కంట్రోల్ తీసేయబడింది.
-
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
-        if (name === 'login') logoutBtn.classList.add('hidden');
+        if (name === 'login' || name === 'namePrompt') logoutBtn.classList.add('hidden');
         else logoutBtn.classList.remove('hidden');
     }
 
@@ -84,6 +94,7 @@ function showScreen(name) {
     if (title) {
         title.textContent = {
             login: 'Teacher Login',
+            namePrompt: 'Welcome',
             dashboard: 'Teacher Dashboard',
             diary: 'Diary రాయండి',
             leave: 'Leave మార్క్'
@@ -95,6 +106,9 @@ function capitalize(s) {
     return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+// =====================================================
+// EVENT BINDINGS
+// =====================================================
 function bindEvents() {
     const themeBtn = document.getElementById('themeBtn');
     if (themeBtn) {
@@ -105,13 +119,12 @@ function bindEvents() {
         });
     }
 
-    // ✅ backBtn ఈవెంట్ తీసేయబడింది.
-
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
             if (confirm('లాగౌట్ చేయాలా?')) {
                 localStorage.removeItem('dm_teacher_session');
+                // ✅ పేరు లోకల్ స్టోరేజ్ లో ఉంచుతాము, తద్వారా మళ్లీ లాగిన్ అయినప్పుడు అడగక్కర్లేదు
                 window.location.href = 'index.html';
             }
         });
@@ -128,7 +141,6 @@ function bindEvents() {
         });
     });
 
-    // ✅ ఫోన్ నంబర్ ఇన్‌పుట్ (teacherId బదులు)
     const teacherPhoneInput = document.getElementById('teacherPhone');
     if (teacherPhoneInput) {
         teacherPhoneInput.addEventListener('input', () => {
@@ -151,6 +163,14 @@ function bindEvents() {
         });
     }
 
+    const nameForm = document.getElementById('nameForm');
+    if (nameForm) {
+        nameForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            handleSaveName();
+        });
+    }
+
     const diaryForm = document.getElementById('diaryForm');
     if (diaryForm) {
         diaryForm.addEventListener('submit', (e) => {
@@ -169,7 +189,7 @@ function bindEvents() {
 }
 
 // =====================================================
-// TEACHER LOGIN (Phone Number + PIN)
+// TEACHER LOGIN
 // =====================================================
 async function handleTeacherLogin() {
     const phone = document.getElementById('teacherPhone').value.trim();
@@ -185,7 +205,6 @@ async function handleTeacherLogin() {
     hideFormError(errorEl);
 
     try {
-        // ✅ ఫోన్ నంబర్ తో వెతకండి
         const snapshot = await db.collection('users')
             .where('phone', '==', phone)
             .where('role', '==', 'teacher')
@@ -203,7 +222,7 @@ async function handleTeacherLogin() {
             return showFormError(errorEl, '🔒 మీ ఖాతా నిలిపివేయబడింది. HM ని సంప్రదించండి.');
         }
 
-                // ✅ PIN ఫార్ములా: 9999 - ఫోన్ చివరి 4 అంకెలు
+        // ✅ PIN ఫార్ములా: 9999 - ఫోన్ చివరి 4 అంకెలు
         const last4 = parseInt(phone.slice(-4), 10);
         let expectedPin = 9999 - last4;
         if (expectedPin < 0) expectedPin = expectedPin + 10000;
@@ -211,24 +230,31 @@ async function handleTeacherLogin() {
 
         const storedPin = String(teacherData.masterPin || '').trim();
         
-        // సేవ్ చేసిన PIN ఫార్ములాతో మ్యాచ్ అవ్వాలి, మరియు టైప్ చేసిన PIN సరిగ్గా ఉండాలి
         if (storedPin !== expectedPin || pin !== expectedPin) {
             return showFormError(errorEl, '❌ తప్పు Master PIN.');
         }
 
-        // ✅ సెషన్ లో ఫోన్ నంబర్ సేవ్ చేయి
         currentTeacher = {
             id: teacherDoc.id,
-            name: teacherData.name || 'Teacher',
+            name: teacherData.name || '',
             phone: teacherData.phone,
             assignments: teacherData.assignments || [],
             role: 'teacher'
         };
         localStorage.setItem('dm_teacher_session', JSON.stringify(currentTeacher));
 
-        UI.toast('✅ Login విజయవంతమైంది!', 'success');
-        await loadTeacherData();
-        showScreen('dashboard');
+        // ✅ పేరు ఉందా చెక్ చేయి
+        const savedName = localStorage.getItem('dm_teacher_name');
+        if (!savedName) {
+            UI.toast('✅ Login విజయవంతమైంది!', 'success');
+            showScreen('namePrompt');
+        } else {
+            currentTeacher.name = savedName;
+            UI.toast(`✅ స్వాగతం ${savedName}!`, 'success');
+            await loadTeacherData();
+            showScreen('dashboard');
+        }
+
     } catch (error) {
         console.error('Login error:', error);
         showFormError(errorEl, 'నెట్‌వర్క్ లోపం. మళ్లీ ప్రయత్నించండి.');
@@ -238,15 +264,102 @@ async function handleTeacherLogin() {
     }
 }
 
+// =====================================================
+// SAVE NAME (First time only)
+// =====================================================
+function handleSaveName() {
+    const name = document.getElementById('teacherNameInput').value.trim();
+    const errorEl = document.getElementById('nameError');
+
+    if (!name) {
+        return showFormError(errorEl, 'మీ పేరు నింపండి.');
+    }
+
+    // ✅ లోకల్ స్టోరేజ్ లో సేవ్ చేయి
+    localStorage.setItem('dm_teacher_name', name);
+    currentTeacher.name = name;
+
+    UI.toast(`✅ స్వాగతం ${name}!`, 'success');
+    loadTeacherData();
+    showScreen('dashboard');
+}
+
+// =====================================================
+// LOAD TEACHER DATA
+// =====================================================
 async function loadTeacherData() {
     if (!currentTeacher) return;
 
-    document.getElementById('teacherWelcomeName').textContent = currentTeacher.name || '—';
-    document.getElementById('teacherWelcomeId').textContent = currentTeacher.phone || '—';
+    // ✅ సమయాన్ని బట్టి గ్రీటింగ్
+    const hour = new Date().getHours();
+    let greeting = '👋 స్వాగతం';
+    if (hour < 12) greeting = '🌅 శుభోదయం';
+    else if (hour < 17) greeting = '☀️ శుభ మధ్యాహ్నం';
+    else greeting = '🌙 శుభ సాయంత్రం';
 
+    const greetingEl = document.getElementById('greetingText');
+    if (greetingEl) greetingEl.textContent = `${greeting}, ${currentTeacher.name || ''}!`;
+
+    document.getElementById('teacherWelcomeName').textContent = currentTeacher.name || '—';
+    document.getElementById('teacherWelcomePhone').textContent = currentTeacher.phone || '—';
+
+    populateClassDropdown();
     await loadMyDiaries();
 }
 
+// =====================================================
+// CLASS & SUBJECT DROPDOWN LOGIC
+// =====================================================
+function populateClassDropdown() {
+    const classSelect = document.getElementById('diaryClass');
+    if (!classSelect) return;
+
+    classSelect.innerHTML = '<option value="">-- Class ఎంచుకోండి --</option>';
+
+    const assignments = currentTeacher.assignments || [];
+    const uniqueClasses = [...new Set(assignments.map(a => a.className))];
+
+    if (uniqueClasses.length === 0) {
+        classSelect.innerHTML = '<option value="">ఏ క్లాస్ అసైన్ చేయలేదు</option>';
+        return;
+    }
+
+    uniqueClasses.forEach(className => {
+        const opt = document.createElement('option');
+        opt.value = className;
+        opt.textContent = className;
+        classSelect.appendChild(opt);
+    });
+
+    classSelect.addEventListener('change', populateSubjectDropdown);
+}
+
+function populateSubjectDropdown() {
+    const classSelect = document.getElementById('diaryClass');
+    const subjectSelect = document.getElementById('diarySubject');
+    if (!classSelect || !subjectSelect) return;
+
+    const selectedClass = classSelect.value;
+    subjectSelect.innerHTML = '<option value="">-- Subject ఎంచుకోండి --</option>';
+
+    if (!selectedClass) return;
+
+    const assignments = currentTeacher.assignments || [];
+    const subjects = assignments
+        .filter(a => a.className === selectedClass)
+        .map(a => a.subject);
+
+    subjects.forEach(subject => {
+        const opt = document.createElement('option');
+        opt.value = subject;
+        opt.textContent = subject;
+        subjectSelect.appendChild(opt);
+    });
+}
+
+// =====================================================
+// LOAD DIARIES
+// =====================================================
 async function loadMyDiaries() {
     if (!currentTeacher) return;
 
@@ -271,7 +384,6 @@ async function loadMyDiaries() {
             container.innerHTML = `
                 <div style="text-align: center; padding: var(--space-md); color: var(--text-muted);">
                     <p style="font-size: 0.85rem;">ఇంకా diary entries లేవు</p>
-                    <p style="font-size: 0.75rem; margin-top: 4px;">"Diary రాయండి" నొక్కి మొదటి entry రాయండి</p>
                 </div>
             `;
             return;
@@ -286,19 +398,15 @@ async function loadMyDiaries() {
                     </span>
                 </div>
                 <p style="font-size: 0.75rem; color: var(--text-muted);">📅 ${escapeHtml(d.date || '—')}</p>
-                <p style="font-size: 0.8rem; margin-top: 4px; white-space: pre-wrap;">${escapeHtml((d.content || '').substring(0, 120))}${(d.content || '').length > 120 ? '...' : ''}</p>
             </div>
         `).join('');
     } catch (error) {
         console.error('Load diaries error:', error);
-        if (container) {
-            container.innerHTML = `<p style="color: var(--danger); text-align: center; padding: var(--space-sm);">లోడ్ విఫలమైంది</p>`;
-        }
     }
 }
 
 // =====================================================
-// SAVE DIARY (Class & Subject Dropdowns తో)
+// SAVE DIARY
 // =====================================================
 async function handleSaveDiary() {
     if (!currentTeacher) {
@@ -341,6 +449,7 @@ async function handleSaveDiary() {
 
         UI.toast('✅ Diary విజయవంతంగా సేవ్ అయ్యింది!', 'success');
         document.getElementById('diaryForm').reset();
+        document.getElementById('diarySubject').innerHTML = '<option value="">-- Subject ఎంచుకోండి --</option>';
         await loadMyDiaries();
         showScreen('dashboard');
     } catch (error) {
@@ -352,6 +461,9 @@ async function handleSaveDiary() {
     }
 }
 
+// =====================================================
+// SAVE LEAVE
+// =====================================================
 async function handleSaveLeave() {
     if (!currentTeacher) return;
 
@@ -393,6 +505,9 @@ async function handleSaveLeave() {
     }
 }
 
+// =====================================================
+// HELPERS
+// =====================================================
 function escapeHtml(text) {
     if (!text) return '';
     const div = document.createElement('div');
