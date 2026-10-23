@@ -203,8 +203,16 @@ async function handleTeacherLogin() {
             return showFormError(errorEl, '🔒 మీ ఖాతా నిలిపివేయబడింది. HM ని సంప్రదించండి.');
         }
 
+                // ✅ PIN ఫార్ములా: 9999 - ఫోన్ చివరి 4 అంకెలు
+        const last4 = parseInt(phone.slice(-4), 10);
+        let expectedPin = 9999 - last4;
+        if (expectedPin < 0) expectedPin = expectedPin + 10000;
+        expectedPin = String(expectedPin).padStart(4, '0');
+
         const storedPin = String(teacherData.masterPin || '').trim();
-        if (storedPin !== pin) {
+        
+        // సేవ్ చేసిన PIN ఫార్ములాతో మ్యాచ్ అవ్వాలి, మరియు టైప్ చేసిన PIN సరిగ్గా ఉండాలి
+        if (storedPin !== expectedPin || pin !== expectedPin) {
             return showFormError(errorEl, '❌ తప్పు Master PIN.');
         }
 
