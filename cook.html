@@ -10,11 +10,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=6" />
+  <link rel="stylesheet" href="style.css?v=24" />
 </head>
 <body class="page-cook">
 
-  <!-- SPLASH -->
   <div id="splash" class="splash-screen">
     <div class="splash-logo" style="font-size:4rem;">🍳</div>
     <h1 class="splash-title">Cook</h1>
@@ -74,7 +73,6 @@
 
     <!-- SCREEN 3: DASHBOARD -->
     <section id="screenDashboard" class="screen hidden">
-      <!-- Welcome -->
       <div class="welcome-banner" style="background: linear-gradient(135deg, #E65100, #F57C00);">
         <div class="welcome-greeting" id="cookGreetingText">👋 స్వాగతం</div>
         <div class="welcome-name" id="cookWelcomeName">— గారు</div>
@@ -84,22 +82,46 @@
         </div>
       </div>
 
-      <!-- Today's Menu -->
+      <!-- HELPER ATTENDANCE (Step 6.3) -->
+      <div class="card">
+        <h3 class="card-title" style="font-size: 1.1rem; text-align: left;">👥 Helper Attendance</h3>
+        <p class="card-desc" style="text-align: left; font-size: 0.8rem;">Helpers పేర్లు add చేసి Present/Absent mark చేయండి</p>
+
+        <div id="helpersList" style="margin-top: var(--space-md);">
+          <p style="color: var(--text-muted); text-align: center; font-size: 0.85rem;">ఇంకా helpers add చేయలేదు</p>
+        </div>
+
+        <div style="display: flex; gap: var(--space-sm); margin-top: var(--space-sm);">
+          <input type="text" id="newHelperName" placeholder="Helper పేరు" style="flex: 1; height: 44px; padding: 8px 12px; border: 1.5px solid var(--border-color); border-radius: var(--radius-md); font-size: 0.9rem; background: var(--bg-color); color: var(--text-main); font-family: inherit;" />
+          <button class="btn btn-primary" onclick="addHelper()" style="padding: 0 16px; width: auto;">+ Add</button>
+        </div>
+      </div>
+
+      <!-- TODAY'S MENU (Step 6.4) -->
       <div class="card">
         <h3 class="card-title" style="font-size: 1.1rem; text-align: left;">🍽️ ఈరోజు మెనూ</h3>
         <p id="menuDate" style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: var(--space-md);">—</p>
         <div id="todayMenu">
           <p style="color: var(--text-muted); text-align: center; padding: var(--space-md);">లోడ్ అవుతోంది...</p>
         </div>
+        <button id="sendToHmBtn" class="btn btn-primary btn-block" onclick="sendToHM()" style="margin-top: var(--space-md); display: none;">
+          <i class="fas fa-paper-plane" style="margin-right: 8px;"></i> HM కి Send చేయండి
+        </button>
       </div>
 
-      <!-- Refresh -->
+      <!-- SUBMITTED (Step 6.5) -->
+      <div class="card">
+        <h3 class="card-title" style="font-size: 1.1rem; text-align: left;">📤 నా Submissions</h3>
+        <div id="mySubmissions">
+          <p style="color: var(--text-muted); text-align: center; font-size: 0.85rem;">లోడ్ అవుతోంది...</p>
+        </div>
+      </div>
+
       <button class="btn btn-outline btn-block" onclick="loadTodayMenu()">
         <i class="fas fa-sync-alt" style="margin-right: 6px;"></i> Refresh Menu
       </button>
     </section>
 
-    <!-- FOOTER -->
     <footer class="app-footer">
       An initiative of <span class="valiass-link" onclick="UI.showContact()">@valiass</span> team
     </footer>
@@ -107,15 +129,13 @@
 
   <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
-  <!-- FIREBASE -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 
-  <!-- APP -->
   <script src="js/config.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/auth.js"></script>
-  <script src="js/pages/cook.js?v=6"></script>
+  <script src="js/pages/cook.js?v=24"></script>
 </body>
 </html>
