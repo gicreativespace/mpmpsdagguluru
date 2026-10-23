@@ -1,46 +1,156 @@
-<!-- SCREEN 2: ADD CHILD -->
-<section id="screenAddChild" class="screen hidden">
-  <div class="card">
-    <h2 class="card-title">👶 మీ పిల్లలను యాడ్ చేయండి</h2>
-    <p class="card-desc">Class + Roll Number ఎంచుకోండి, DOB verify చేయండి</p>
+<!DOCTYPE html>
+<html lang="te">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#1B5E20" />
+  <title>Parent — MPMP School - Dagguluru</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css?v=6" />
+</head>
+<body class="page-parent">
 
-    <form id="addChildForm" class="form" novalidate>
-      <div class="field">
-        <label for="addChildClass">Class</label>
-        <select id="addChildClass" required>
-          <option value="">-- Class ఎంచుకోండి --</option>
-        </select>
-      </div>
-      <div class="field">
-        <label for="addChildRoll">Roll Number</label>
-        <input type="text" id="addChildRoll" inputmode="numeric" maxlength="10" required placeholder="ఉదా: 01" />
-      </div>
-      <div class="field">
-        <label for="addChildDob">DOB Verify (ddmmyy)</label>
-        <input type="text" id="addChildDob" inputmode="numeric" maxlength="6" required placeholder="ఉదా: 150190" />
-      </div>
-      <p id="addChildError" class="form-error hidden" role="alert"></p>
-      <button type="submit" id="addChildBtn" class="btn btn-primary btn-block">
-        ✅ Child Confirm చేయండి
+  <!-- SPLASH -->
+  <div id="splash" class="splash-screen">
+    <div class="splash-logo" style="font-size:4rem;">👨‍👩‍👧</div>
+    <h1 class="splash-title">Parent</h1>
+    <p class="splash-sub">MPMP School - Dagguluru</p>
+    <div class="splash-loader"></div>
+  </div>
+
+  <main id="parentApp" class="hm-app hidden">
+    <header class="app-header">
+      <h1 id="pageTitle" class="app-title">Parent</h1>
+      <!-- Go to Home (no logout) -->
+      <button id="goHomeBtn" class="icon-btn hidden" onclick="showScreen('childSelect')" aria-label="My Children" title="My Children">
+        <i class="fas fa-home"></i>
       </button>
-    </form>
+      <button id="themeBtn" class="icon-btn theme-btn" aria-label="Theme" title="థీమ్">🌙</button>
+    </header>
 
-    <button type="button" id="skipAddChild" class="link-btn" onclick="showScreen('childSelect')">
-      Skip → My Children చూడండి
-    </button>
-  </div>
-</section>
+    <!-- SCREEN 1: WELCOME / START -->
+    <section id="screenLogin" class="screen hidden">
+      <div class="card card-center">
+        <div class="login-icon">👨‍👩‍👧</div>
+        <h2 class="card-title">Parent Section</h2>
+        <p class="card-desc">మీ పిల్లలను యాడ్ చేసి, వారి వివరాలు చూడండి</p>
 
-<!-- SCREEN 3: CHILD SELECT -->
-<section id="screenChildSelect" class="screen hidden">
-  <div class="card">
-    <h2 class="card-title">👨‍👩‍👧‍👦 నా పిల్లలు</h2>
-    <p class="card-desc">ఏ పిల్లవాడి వివరాలు చూడాలి?</p>
-    <div id="childrenList" style="display: flex; flex-direction: column; gap: var(--space-md); margin-top: var(--space-md);">
-      <!-- JS render -->
-    </div>
-    <button type="button" class="btn btn-secondary btn-block" onclick="showScreen('addChild')" style="margin-top: var(--space-md);">
-      <i class="fas fa-plus-circle"></i> + Add Another Child
-    </button>
-  </div>
-</section>
+        <button class="btn btn-primary btn-block" onclick="showScreen('addChild')">
+          <i class="fas fa-plus-circle" style="margin-right: 8px;"></i> Child Add చేయండి
+        </button>
+
+        <button type="button" id="continueBtn" class="link-btn hidden" onclick="showScreen('childSelect')">
+          Already added → My Children
+        </button>
+      </div>
+    </section>
+
+    <!-- SCREEN 2: ADD CHILD -->
+    <section id="screenAddChild" class="screen hidden">
+      <div class="card">
+        <h2 class="card-title">👶 మీ పిల్లలను యాడ్ చేయండి</h2>
+        <p class="card-desc">Class + Roll Number ఎంచుకోండి, DOB verify చేయండి</p>
+
+        <form id="addChildForm" class="form" novalidate>
+          <div class="field">
+            <label for="addChildClass">Class</label>
+            <select id="addChildClass" required>
+              <option value="">-- Class ఎంచుకోండి --</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="addChildRoll">Roll Number</label>
+            <input type="text" id="addChildRoll" inputmode="numeric" maxlength="10" required placeholder="ఉదా: 01" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="addChildDob">DOB Verify (ddmmyy)</label>
+            <input type="text" id="addChildDob" inputmode="numeric" maxlength="6" required placeholder="ఉదా: 150190" autocomplete="off" />
+          </div>
+          <p id="addChildError" class="form-error hidden" role="alert"></p>
+          <button type="submit" id="addChildBtn" class="btn btn-primary btn-block">
+            <i class="fas fa-check-circle" style="margin-right: 8px;"></i> Child Confirm చేయండి
+          </button>
+        </form>
+
+        <button type="button" id="skipAddChild" class="link-btn" onclick="showScreen('login')">
+          <i class="fas fa-arrow-left"></i> వెనక్కి
+        </button>
+      </div>
+    </section>
+
+    <!-- SCREEN 3: CHILD SELECT -->
+    <section id="screenChildSelect" class="screen hidden">
+      <div class="card">
+        <h2 class="card-title">👨‍👩‍👧‍👦 నా పిల్లలు</h2>
+        <p class="card-desc">ఏ పిల్లవాడి వివరాలు చూడాలి?</p>
+        <div id="childrenList" style="display: flex; flex-direction: column; gap: var(--space-md); margin-top: var(--space-md);">
+          <p style="color: var(--text-muted); text-align: center;">లోడ్ అవుతోంది...</p>
+        </div>
+        <button type="button" class="btn btn-secondary btn-block" onclick="showScreen('addChild')" style="margin-top: var(--space-md);">
+          <i class="fas fa-plus-circle" style="margin-right: 8px;"></i> + Add Another Child
+        </button>
+      </div>
+    </section>
+
+    <!-- SCREEN 4: DASHBOARD -->
+    <section id="screenDashboard" class="screen hidden">
+      <!-- Welcome -->
+      <div class="welcome-banner" style="background: linear-gradient(135deg, #1565C0, #42A5F5);">
+        <div class="welcome-greeting">👋 స్వాగతం</div>
+        <div class="welcome-name" id="parentWelcomeName">—</div>
+        <div class="welcome-time">
+          <i class="fas fa-school"></i>
+          <span id="parentWelcomeClass">—</span>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="card" style="padding: var(--space-sm);">
+        <div style="display: flex; gap: var(--space-xs); overflow-x: auto;">
+          <button id="tabNotices" class="btn btn-primary" onclick="switchTab('notices')" style="flex: 1; padding: 10px; font-size: 0.75rem; white-space: nowrap;">
+            📢 Notices
+          </button>
+          <button id="tabDiary" class="btn btn-outline" onclick="switchTab('diary')" style="flex: 1; padding: 10px; font-size: 0.75rem; white-space: nowrap;">
+            📖 Diary
+          </button>
+          <button id="tabAttendance" class="btn btn-outline" onclick="switchTab('attendance')" style="flex: 1; padding: 10px; font-size: 0.75rem; white-space: nowrap;">
+            ✅ Attendance
+          </button>
+          <button id="tabMenu" class="btn btn-outline" onclick="switchTab('menu')" style="flex: 1; padding: 10px; font-size: 0.75rem; white-space: nowrap;">
+            🍽️ Menu
+          </button>
+          <button id="tabLeave" class="btn btn-outline" onclick="switchTab('leave')" style="flex: 1; padding: 10px; font-size: 0.75rem; white-space: nowrap;">
+            📅 Leave
+          </button>
+        </div>
+      </div>
+
+      <div id="parentContent">
+        <p style="color: var(--text-muted); text-align: center; padding: var(--space-md);">లోడ్ అవుతోంది...</p>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="app-footer">
+      An initiative of <span class="valiass-link" onclick="UI.showContact()">@valiass</span> team
+    </footer>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <!-- FIREBASE -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+
+  <!-- APP -->
+  <script src="js/config.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/pages/parent.js?v=6"></script>
+</body>
+</html>
