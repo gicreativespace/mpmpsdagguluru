@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=18" />
+  <link rel="stylesheet" href="style.css?v=27" />
 </head>
 <body class="page-notice">
 
@@ -33,19 +33,47 @@
       <button id="themeBtn" class="icon-btn theme-btn" aria-label="Theme" title="థీమ్">🌙</button>
     </header>
 
+    <!-- SCREEN 1: LIST (with 2 tabs) -->
     <section id="screenList" class="screen hidden">
-      <div class="card">
-        <h2 class="card-title">📢 Notice Board</h2>
-        <p class="card-desc">పాఠశాల నోటీసులు</p>
-        <button class="btn btn-primary btn-block" onclick="showAddScreen()" style="margin-bottom: var(--space-lg);">
-          <i class="fas fa-plus" style="margin-right: 6px;"></i> కొత్త నోటీస్ యాడ్ చేయండి
-        </button>
-        <div id="noticesList">
-          <p style="color: var(--text-muted); text-align: center; padding: var(--space-md);">లోడ్ అవుతోంది...</p>
+      <!-- Tabs -->
+      <div class="card" style="padding: var(--space-sm);">
+        <div style="display: flex; gap: var(--space-xs);">
+          <button id="tabNotices" class="btn btn-primary" onclick="switchNoticeTab('notices')" style="flex: 1; padding: 10px; font-size: 0.85rem;">
+            📢 Notices
+          </button>
+          <button id="tabPending" class="btn btn-outline" onclick="switchNoticeTab('pending')" style="flex: 1; padding: 10px; font-size: 0.85rem;">
+            ⏳ Pending <span id="pendingBadge" style="display:none; background: var(--danger); color: #fff; border-radius: 50%; padding: 1px 6px; font-size: 0.65rem; margin-left: 4px;">0</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Notices Tab Content -->
+      <div id="noticesTabContent">
+        <div class="card">
+          <h2 class="card-title">📢 Notice Board</h2>
+          <p class="card-desc">పాఠశాల నోటీసులు</p>
+          <button class="btn btn-primary btn-block" onclick="showAddScreen()" style="margin-bottom: var(--space-lg);">
+            <i class="fas fa-plus" style="margin-right: 6px;"></i> కొత్త నోటీస్ యాడ్ చేయండి
+          </button>
+          <div id="noticesList">
+            <p style="color: var(--text-muted); text-align: center; padding: var(--space-md);">లోడ్ అవుతోంది...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pending Tab Content -->
+      <div id="pendingTabContent" style="display: none;">
+        <div class="card">
+          <h2 class="card-title">⏳ Teacher Announcements</h2>
+          <p class="card-desc">Approve చేస్తే Notice Board లో కనిపిస్తాయి</p>
+          <div id="pendingAnnouncementsList">
+            <p style="color: var(--text-muted); text-align: center; padding: var(--space-md);">లోడ్ అవుతోంది...</p>
+          </div>
         </div>
       </div>
     </section>
 
+    <!-- SCREEN 2: FORM -->
     <section id="screenForm" class="screen hidden">
       <div class="card">
         <h2 class="card-title" id="formTitle">➕ కొత్త నోటీస్</h2>
@@ -102,6 +130,6 @@
   <script src="js/config.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/auth.js"></script>
-  <script src="js/pages/hm-notice.js?v=18"></script>
+  <script src="js/pages/hm-notice.js?v=27"></script>
 </body>
 </html>
