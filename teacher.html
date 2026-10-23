@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=17" />
+  <link rel="stylesheet" href="style.css?v=18" />
 </head>
 <body class="page-teacher">
 
@@ -63,7 +63,7 @@
       </div>
     </section>
 
-    <!-- ========== SCREEN 2: NAME PROMPT (First Time) ========== -->
+    <!-- ========== SCREEN 2: NAME PROMPT ========== -->
     <section id="screenNamePrompt" class="screen hidden">
       <div class="card card-center">
         <div class="login-icon">🙏</div>
@@ -96,15 +96,21 @@
       <div class="card">
         <h3 class="card-title" style="font-size: 1.1rem; text-align: left;">⚡ త్వరిత చర్యలు</h3>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); margin-top: var(--space-md);">
+          
+          <button class="btn btn-primary" onclick="showScreen('attendance')" style="padding: 20px 10px; flex-direction: column; gap: 8px;">
+            <i class="fas fa-user-check" style="font-size: 1.6rem;"></i>
+            <span style="font-size: 0.85rem;">Attendance</span>
+          </button>
+
           <button class="btn btn-primary" onclick="showScreen('diary')" style="padding: 20px 10px; flex-direction: column; gap: 8px;">
             <i class="fas fa-book" style="font-size: 1.6rem;"></i>
             <span style="font-size: 0.85rem;">Diary రాయండి</span>
           </button>
-          <button class="btn btn-secondary" onclick="showScreen('leave')" style="padding: 20px 10px; flex-direction: column; gap: 8px;">
-            <i class="fas fa-calendar-times" style="font-size: 1.6rem;"></i>
-            <span style="font-size: 0.85rem;">Leave మార్క్</span>
-          </button>
+
         </div>
+        <button class="btn btn-secondary btn-block" onclick="showScreen('leave')" style="padding: 14px; margin-top: var(--space-md);">
+            <i class="fas fa-calendar-times" style="margin-right: 8px;"></i> Leave మార్క్
+        </button>
       </div>
 
       <!-- My Diaries -->
@@ -143,19 +149,19 @@
           </div>
 
           <div class="field">
-            <label for="diaryContent">ఏమి చెప్పారు?</label>
-            <textarea id="diaryContent" required rows="5" placeholder="ఈరోజు తరగతిలో ఏమి చెప్పారో రాయండి..." style="height: auto; min-height: 120px; padding: 12px 16px; resize: vertical;"></textarea>
+            <label for="diaryClassWork">Class Work (ఏమి చెప్పారు?)</label>
+            <textarea id="diaryClassWork" required rows="4" placeholder="ఈరోజు తరగతిలో ఏమి చెప్పారో రాయండి..." style="height: auto; min-height: 100px; padding: 12px 16px; resize: vertical;"></textarea>
           </div>
 
           <div class="field">
-            <label for="diaryHomework">Homework (ఐచ్ఛికం)</label>
+            <label for="diaryHomework">Home Work (ఐచ్ఛికం)</label>
             <textarea id="diaryHomework" rows="3" placeholder="Homework వివరాలు..." style="height: auto; min-height: 80px; padding: 12px 16px; resize: vertical;"></textarea>
           </div>
 
           <p id="diaryError" class="form-error hidden" role="alert"></p>
 
           <button type="submit" id="diarySubmitBtn" class="btn btn-primary btn-block">
-            <i class="fas fa-save" style="margin-right: 8px;"></i> Diary Save చేయండి
+            <i class="fas fa-paper-plane" style="margin-right: 8px;"></i> Save & Send to HM
           </button>
         </form>
 
@@ -165,7 +171,34 @@
       </div>
     </section>
 
-    <!-- ========== SCREEN 5: LEAVE MARK ========== -->
+    <!-- ========== SCREEN 5: ATTENDANCE ========== -->
+    <section id="screenAttendance" class="screen hidden">
+      <div class="card">
+        <h2 class="card-title">✅ Attendance (1st Period)</h2>
+        <p class="card-desc">డిఫాల్ట్ గా అందరూ Present. Absent వాళ్ళ టిక్ తీసేయండి.</p>
+
+        <div class="field">
+            <label for="attendanceClass">Class</label>
+            <select id="attendanceClass" required>
+              <option value="">-- Class ఎంచుకోండి --</option>
+            </select>
+        </div>
+
+        <div id="attendanceList" style="margin-top: var(--space-md);">
+            <p style="color: var(--text-muted); text-align: center; padding: var(--space-md);">Class ఎంచుకోండి...</p>
+        </div>
+
+        <button type="button" id="saveAttendanceBtn" class="btn btn-primary btn-block" onclick="handleSaveAttendance()" style="margin-top: var(--space-md); display: none;">
+            <i class="fas fa-save" style="margin-right: 8px;"></i> Save Attendance
+        </button>
+
+        <button type="button" class="link-btn" onclick="showScreen('dashboard')">
+          <i class="fas fa-arrow-left"></i> వెనక్కి
+        </button>
+      </div>
+    </section>
+
+    <!-- ========== SCREEN 6: LEAVE MARK ========== -->
     <section id="screenLeave" class="screen hidden">
       <div class="card">
         <h2 class="card-title">📅 Leave మార్క్ చేయండి</h2>
@@ -219,6 +252,6 @@
   <script src="js/config.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/auth.js"></script>
-  <script src="js/pages/teacher.js?v=17"></script>
+  <script src="js/pages/teacher.js?v=18"></script>
 </body>
 </html>
