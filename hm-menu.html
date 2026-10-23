@@ -40,17 +40,20 @@
       </p>
     </div>
 
-    <!-- Tabs -->
+        <!-- Tabs (4 tabs) -->
     <div class="card" style="padding: var(--space-sm);">
-      <div style="display: flex; gap: var(--space-xs);">
-        <button id="tabTemplate" class="btn btn-primary" onclick="switchTab('template')" style="flex: 1; padding: 10px; font-size: 0.8rem;">
+      <div style="display: flex; gap: var(--space-xs); overflow-x: auto;">
+        <button id="tabTemplate" class="btn btn-primary" onclick="switchTab('template')" style="flex: 1; padding: 10px; font-size: 0.75rem; white-space: nowrap;">
           📋 Template
         </button>
-        <button id="tabToday" class="btn btn-outline" onclick="switchTab('today')" style="flex: 1; padding: 10px; font-size: 0.8rem;">
+        <button id="tabToday" class="btn btn-outline" onclick="switchTab('today')" style="flex: 1; padding: 10px; font-size: 0.75rem; white-space: nowrap;">
           📅 Today
         </button>
-        <button id="tabSponsor" class="btn btn-outline" onclick="switchTab('sponsor')" style="flex: 1; padding: 10px; font-size: 0.8rem;">
+        <button id="tabSponsor" class="btn btn-outline" onclick="switchTab('sponsor')" style="flex: 1; padding: 10px; font-size: 0.75rem; white-space: nowrap;">
           🎁 Sponsor
+        </button>
+        <button id="tabSubmissions" class="btn btn-outline" onclick="switchTab('submissions')" style="flex: 1; padding: 10px; font-size: 0.75rem; white-space: nowrap;">
+          🍳 Cook
         </button>
       </div>
     </div>
