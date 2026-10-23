@@ -10,11 +10,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=16" />
+  <link rel="stylesheet" href="style.css?v=17" />
 </head>
 <body class="page-classrooms">
 
-  <!-- ===== SPLASH SCREEN ===== -->
   <div id="splash" class="splash-screen">
     <div class="splash-logo" style="font-size:4rem;">🏫</div>
     <h1 class="splash-title">Classrooms</h1>
@@ -22,36 +21,32 @@
     <div class="splash-loader"></div>
   </div>
 
-  <!-- ===== MAIN APP ===== -->
   <main id="classroomsApp" class="hm-app hidden">
-
-    <!-- Header -->
     <header class="app-header">
       <h1 id="pageTitle" class="app-title">Classrooms</h1>
+      <button id="homeBtn" class="icon-btn hidden" onclick="window.location.href='hm-dashboard.html'" aria-label="Home" title="Dashboard">
+        <i class="fas fa-home"></i>
+      </button>
       <button id="logoutBtn" class="icon-btn logout-btn" aria-label="Logout" title="లాగౌట్">
         <i class="fas fa-sign-out-alt"></i>
       </button>
       <button id="themeBtn" class="icon-btn theme-btn" aria-label="Theme" title="థీమ్">🌙</button>
     </header>
 
-    <!-- ========== SCREEN 1: CLASSROOM LIST ========== -->
     <section id="screenList" class="screen hidden">
       <div class="card">
         <h2 class="card-title">🏫 Classrooms</h2>
         <p class="card-desc">తరగతులు మరియు విద్యార్థులు</p>
-
         <div id="classroomsList">
           <p style="color: var(--text-muted); text-align: center; padding: var(--space-md);">లోడ్ అవుతోంది...</p>
         </div>
       </div>
     </section>
 
-    <!-- ========== SCREEN 2: CREATE CLASS ========== -->
     <section id="screenCreateClass" class="screen hidden">
       <div class="card">
         <h2 class="card-title">➕ కొత్త Class క్రియేట్ చేయండి</h2>
         <p class="card-desc">Class మరియు Strength ఎంచుకోండి</p>
-
         <form id="createClassForm" class="form" novalidate>
           <div class="field">
             <label for="newClassName">Class</label>
@@ -64,47 +59,38 @@
               <option value="Class 5">Class 5</option>
             </select>
           </div>
-
           <div class="field">
             <label for="newClassStrength">Class Strength (మొత్తం విద్యార్థులు)</label>
             <input type="number" id="newClassStrength" min="1" max="100" required placeholder="ఉదా: 30" />
           </div>
-
           <p id="createClassError" class="form-error hidden" role="alert"></p>
-
           <button type="submit" id="createClassBtn" class="btn btn-primary btn-block">
             <i class="fas fa-save" style="margin-right: 8px;"></i> Class క్రియేట్ చేయండి
           </button>
         </form>
-
         <button type="button" class="link-btn" onclick="showScreen('list')">
           <i class="fas fa-arrow-left"></i> వెనక్కి
         </button>
       </div>
     </section>
 
-    <!-- ========== SCREEN 3: STUDENTS LIST ========== -->
     <section id="screenStudents" class="screen hidden">
       <div class="card">
         <h2 class="card-title" id="studentsTitle">👨‍🎓 Students</h2>
         <p class="card-desc" id="studentsClassDesc">—</p>
-
         <div id="studentsList">
           <p style="color: var(--text-muted); text-align: center; padding: var(--space-md);">లోడ్ అవుతోంది...</p>
         </div>
-
         <button type="button" class="link-btn" onclick="showScreen('list')">
           <i class="fas fa-arrow-left"></i> Classrooms కి తిరిగి
         </button>
       </div>
     </section>
 
-    <!-- ========== SCREEN 4: EDIT STUDENT (MODAL STYLE) ========== -->
     <section id="screenEditStudent" class="screen hidden">
       <div class="card">
         <h2 class="card-title" id="editStudentTitle">✏️ విద్యార్థి వివరాలు</h2>
         <p class="card-desc" id="editStudentDesc">—</p>
-
         <form id="editStudentForm" class="form" novalidate>
           <div class="field">
             <label for="editStudentRoll">Roll Number</label>
@@ -118,39 +104,31 @@
             <label for="editStudentDob">పుట్టిన తేదీ (ddmmyy)</label>
             <input type="text" id="editStudentDob" maxlength="6" inputmode="numeric" required autocomplete="off" placeholder="ఉదా: 150190" />
           </div>
-
           <p id="editStudentError" class="form-error hidden" role="alert"></p>
-
           <button type="submit" id="editStudentBtn" class="btn btn-primary btn-block">
             <i class="fas fa-save" style="margin-right: 8px;"></i> Save
           </button>
         </form>
-
         <button type="button" class="link-btn" onclick="showScreen('students')">
           <i class="fas fa-arrow-left"></i> Students కి తిరిగి
         </button>
       </div>
     </section>
 
-    <!-- FOOTER -->
     <footer class="app-footer">
       An initiative of <span class="valiass-link" onclick="UI.showContact()">@valiass</span> team
     </footer>
-
   </main>
 
-  <!-- TOAST CONTAINER -->
   <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
-  <!-- ==================== FIREBASE SDKs ==================== -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 
-  <!-- ==================== APP SCRIPTS ==================== -->
   <script src="js/config.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/auth.js"></script>
-  <script src="js/pages/hm-classrooms.js?v=16"></script>
+  <script src="js/pages/hm-classrooms.js?v=17"></script>
 </body>
 </html>
