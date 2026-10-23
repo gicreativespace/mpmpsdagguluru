@@ -309,7 +309,11 @@ async function handleSaveStaff() {
     if (!/^\d{6}$/.test(dob)) return showFormError(errorEl, 'పుట్టిన తేదీ ddmmyy ఫార్మాట్ లో 6 అంకెలు ఉండాలి.');
 
     // Master PIN ఆటోమేటిక్ జనరేట్ (చివరి 4 అంకెలు)
-    const autoPin = phone.slice(-4);
+            // ✅ PIN ఫార్ములా: 9999 - ఫోన్ చివరి 4 అంకెలు
+        const last4 = parseInt(phone.slice(-4), 10);
+        let autoPin = 9999 - last4;
+        if (autoPin < 0) autoPin = autoPin + 10000; // నెగటివ్ వస్తే సరిచేయి
+        autoPin = String(autoPin).padStart(4, '0'); // ఎప్పుడూ 4 అంకెలు ఉండేలా
 
     // Teacher అయితే, సెలెక్ట్ చేసిన అసైన్‌మెంట్స్ తీసుకో
     let assignments = [];
