@@ -10,11 +10,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=19" />
+  <link rel="stylesheet" href="style.css?v=6" />
 </head>
 <body class="page-teacher">
 
-  <!-- ===== SPLASH SCREEN ===== -->
+  <!-- SPLASH -->
   <div id="splash" class="splash-screen">
     <div class="splash-logo" style="font-size:4rem;">👨‍🏫</div>
     <h1 class="splash-title">Teacher</h1>
@@ -22,10 +22,7 @@
     <div class="splash-loader"></div>
   </div>
 
-  <!-- ===== MAIN APP ===== -->
   <main id="teacherApp" class="hm-app hidden">
-
-    <!-- Header -->
     <header class="app-header">
       <h1 id="pageTitle" class="app-title">Teacher</h1>
       <button id="logoutBtn" class="icon-btn logout-btn hidden" aria-label="Logout" title="లాగౌట్">
@@ -34,7 +31,7 @@
       <button id="themeBtn" class="icon-btn theme-btn" aria-label="Theme" title="థీమ్">🌙</button>
     </header>
 
-    <!-- ========== SCREEN 1: LOGIN ========== -->
+    <!-- SCREEN 1: LOGIN -->
     <section id="screenLogin" class="screen hidden">
       <div class="card card-center">
         <div class="login-icon">🔐</div>
@@ -53,63 +50,81 @@
               <button type="button" class="pin-toggle" data-target="teacherPin" aria-label="Show PIN">👁</button>
             </div>
           </div>
-
           <p id="teacherLoginError" class="form-error hidden" role="alert"></p>
-
-          <button type="submit" id="teacherLoginBtn" class="btn btn-primary btn-block">
-            లాగిన్
-          </button>
+          <button type="submit" id="teacherLoginBtn" class="btn btn-primary btn-block">లాగిన్</button>
         </form>
       </div>
     </section>
 
-    <!-- ========== SCREEN 2: NAME PROMPT ========== -->
+    <!-- SCREEN 2: NAME PROMPT -->
     <section id="screenNamePrompt" class="screen hidden">
       <div class="card card-center">
         <div class="login-icon">🙏</div>
         <h2 class="card-title">మీ పేరు ఏంటి?</h2>
         <p class="card-desc">తర్వాత మీకు పేరుతో పిలవడానికి ఉపయోగపడుతుంది.</p>
-
         <form id="nameForm" class="form" novalidate>
           <div class="field">
             <label for="teacherNameInput">మీ పేరు</label>
             <input type="text" id="teacherNameInput" required autocomplete="off" placeholder="ఉదా: రమేష్ కుమార్" />
           </div>
           <p id="nameError" class="form-error hidden" role="alert"></p>
-          <button type="submit" id="nameSubmitBtn" class="btn btn-primary btn-block">
-            సేవ్ చేయండి
-          </button>
+          <button type="submit" id="nameSubmitBtn" class="btn btn-primary btn-block">సేవ్ చేయండి</button>
         </form>
       </div>
     </section>
 
-    <!-- ========== SCREEN 3: DASHBOARD ========== -->
+    <!-- SCREEN 3: DASHBOARD -->
     <section id="screenDashboard" class="screen hidden">
       <!-- Welcome -->
-      <div class="card" style="background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: #fff; border: none;">
-        <h2 style="font-size: 1.3rem; margin-bottom: 4px;" id="greetingText">👋 స్వాగతం!</h2>
-        <p id="teacherWelcomeName" style="font-size: 1.1rem; font-weight: 600;">—</p>
-        <p id="teacherWelcomePhone" style="font-size: 0.8rem; opacity: 0.9;">—</p>
+      <div class="welcome-banner">
+        <div class="welcome-greeting" id="greetingText">👋 స్వాగతం</div>
+        <div class="welcome-name" id="teacherWelcomeName">— గారు</div>
+        <div class="welcome-time">
+          <i class="fas fa-clock"></i>
+          <span id="teacherWelcomePhone">—</span>
+        </div>
+      </div>
+
+      <!-- Assigned Classes & Subjects -->
+      <div class="card">
+        <h3 class="card-title" style="font-size: 1.1rem; text-align: left;">📚 నా Classes & Subjects</h3>
+        <div id="assignedClassesList" style="margin-top: var(--space-md);">
+          <p style="color: var(--text-muted); text-align: center; font-size: 0.85rem;">లోడ్ అవుతోంది...</p>
+        </div>
+      </div>
+
+      <!-- I am on Leave Toggle -->
+      <div class="card">
+        <div class="toggle-row">
+          <div class="toggle-row-left">
+            <span class="toggle-row-icon">🏖️</span>
+            <span class="toggle-row-label">నేను Leave లో ఉన్నాను</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="onLeaveToggle" onchange="handleOnLeaveToggle(this)" />
+            <span class="slider round"></span>
+          </label>
+        </div>
+        <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: var(--space-sm); padding: 0 var(--space-sm);">
+          ON చేస్తే ఈరోజు Diary లో "Teacher on Leave" అని కనిపిస్తుంది. రేపు auto OFF అవుతుంది.
+        </p>
       </div>
 
       <!-- Quick Actions -->
       <div class="card">
         <h3 class="card-title" style="font-size: 1.1rem; text-align: left;">⚡ త్వరిత చర్యలు</h3>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); margin-top: var(--space-md);">
-          
           <button class="btn btn-primary" onclick="showScreen('attendance')" style="padding: 20px 10px; flex-direction: column; gap: 8px;">
             <i class="fas fa-user-check" style="font-size: 1.6rem;"></i>
             <span style="font-size: 0.85rem;">Attendance</span>
           </button>
-
           <button class="btn btn-primary" onclick="showScreen('diary')" style="padding: 20px 10px; flex-direction: column; gap: 8px;">
             <i class="fas fa-book" style="font-size: 1.6rem;"></i>
             <span style="font-size: 0.85rem;">Diary రాయండి</span>
           </button>
-
         </div>
         <button class="btn btn-secondary btn-block" onclick="showScreen('leave')" style="padding: 14px; margin-top: var(--space-md);">
-            <i class="fas fa-calendar-times" style="margin-right: 8px;"></i> Leave మార్క్
+          <i class="fas fa-calendar-times" style="margin-right: 8px;"></i> Leave మార్క్
         </button>
       </div>
 
@@ -122,99 +137,80 @@
       </div>
     </section>
 
-    <!-- ========== SCREEN 4: WRITE DIARY ========== -->
+    <!-- SCREEN 4: DIARY -->
     <section id="screenDiary" class="screen hidden">
       <div class="card">
         <h2 class="card-title">📖 Diary రాయండి</h2>
         <p class="card-desc">ఈరోజు తరగతి వివరాలు రాయండి</p>
-
         <form id="diaryForm" class="form" novalidate>
           <div class="field">
             <label for="diaryDate">తేదీ</label>
             <input type="date" id="diaryDate" required />
           </div>
-
           <div class="field">
             <label for="diaryClass">Class</label>
             <select id="diaryClass" required>
               <option value="">-- Class ఎంచుకోండి --</option>
             </select>
           </div>
-
-          <!-- ✅ ఇక్కడ సబ్జెక్ట్ బాక్సులు డైనమిక్ గా వస్తాయి -->
-          <div id="subjectsContainer" style="display: flex; flex-direction: column; gap: var(--space-lg); margin-top: var(--space-md);">
-            <!-- JS ద్వారా ఇక్కడ ఫీల్డ్స్ జనరేట్ అవుతాయి -->
-          </div>
-
+          <div id="subjectsContainer" style="display: flex; flex-direction: column; gap: var(--space-lg); margin-top: var(--space-md);"></div>
           <p id="diaryError" class="form-error hidden" role="alert"></p>
-
           <button type="submit" id="diarySubmitBtn" class="btn btn-primary btn-block" style="margin-top: var(--space-md);">
             <i class="fas fa-paper-plane" style="margin-right: 8px;"></i> Save & Send to HM
           </button>
         </form>
-
         <button type="button" class="link-btn" onclick="showScreen('dashboard')">
           <i class="fas fa-arrow-left"></i> వెనక్కి
         </button>
       </div>
     </section>
 
-    <!-- ========== SCREEN 5: ATTENDANCE ========== -->
+    <!-- SCREEN 5: ATTENDANCE -->
     <section id="screenAttendance" class="screen hidden">
       <div class="card">
         <h2 class="card-title">✅ Attendance (1st Period)</h2>
         <p class="card-desc">డిఫాల్ట్ గా అందరూ Present. Absent వాళ్ళ టిక్ తీసేయండి.</p>
-
         <div class="field">
-            <label for="attendanceClass">Class</label>
-            <select id="attendanceClass" required>
-              <option value="">-- Class ఎంచుకోండి --</option>
-            </select>
+          <label for="attendanceClass">Class</label>
+          <select id="attendanceClass" required>
+            <option value="">-- Class ఎంచుకోండి --</option>
+          </select>
         </div>
-
         <div id="attendanceList" style="margin-top: var(--space-md);">
-            <p style="color: var(--text-muted); text-align: center; padding: var(--space-md);">Class ఎంచుకోండి...</p>
+          <p style="color: var(--text-muted); text-align: center; padding: var(--space-md);">Class ఎంచుకోండి...</p>
         </div>
-
         <button type="button" id="saveAttendanceBtn" class="btn btn-primary btn-block" onclick="handleSaveAttendance()" style="margin-top: var(--space-md); display: none;">
-            <i class="fas fa-save" style="margin-right: 8px;"></i> Save Attendance
+          <i class="fas fa-save" style="margin-right: 8px;"></i> Save Attendance
         </button>
-
         <button type="button" class="link-btn" onclick="showScreen('dashboard')">
           <i class="fas fa-arrow-left"></i> వెనక్కి
         </button>
       </div>
     </section>
 
-    <!-- ========== SCREEN 6: LEAVE MARK ========== -->
+    <!-- SCREEN 6: LEAVE -->
     <section id="screenLeave" class="screen hidden">
       <div class="card">
         <h2 class="card-title">📅 Leave మార్క్ చేయండి</h2>
         <p class="card-desc">మీరు సెలవులో ఉంటే ఇక్కడ మార్క్ చేయండి</p>
-
         <form id="leaveForm" class="form" novalidate>
           <div class="field">
             <label for="leaveFrom">From Date</label>
             <input type="date" id="leaveFrom" required />
           </div>
-
           <div class="field">
             <label for="leaveTo">To Date</label>
             <input type="date" id="leaveTo" required />
           </div>
-
           <div class="field">
             <label for="leaveReason">కారణం</label>
             <textarea id="leaveReason" required rows="3" placeholder="సెలవు కారణం..." style="height: auto; min-height: 80px; padding: 12px 16px; resize: vertical;"></textarea>
           </div>
-
           <p id="leaveError" class="form-error hidden" role="alert"></p>
-
           <button type="submit" id="leaveSubmitBtn" class="btn btn-primary btn-block">
             <i class="fas fa-paper-plane" style="margin-right: 8px;"></i> Leave Submit చేయండి
           </button>
         </form>
-
         <button type="button" class="link-btn" onclick="showScreen('dashboard')">
           <i class="fas fa-arrow-left"></i> వెనక్కి
         </button>
@@ -225,21 +221,19 @@
     <footer class="app-footer">
       An initiative of <span class="valiass-link" onclick="UI.showContact()">@valiass</span> team
     </footer>
-
   </main>
 
-  <!-- TOAST CONTAINER -->
   <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
-  <!-- ==================== FIREBASE SDKs ==================== -->
+  <!-- FIREBASE -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 
-  <!-- ==================== APP SCRIPTS ==================== -->
+  <!-- APP -->
   <script src="js/config.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/auth.js"></script>
-  <script src="js/pages/teacher.js?v=19"></script>
+  <script src="js/pages/teacher.js?v=6"></script>
 </body>
 </html>
