@@ -1,8 +1,9 @@
-// js/pages/teacher.js — v12.0 (Step 5.4 — Attendance C2)
+// js/pages/teacher.js — v12.0 (Step 5.5 — Diary Edit)
 let currentScreen = 'login';
 let currentTeacher = null;
 let allTeacherDiaries = [];
 let currentStudentsForAttendance = [];
+let editingDiaryId = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
     const savedTheme = localStorage.getItem('dm_theme') || 'light';
@@ -35,7 +36,7 @@ function addCustomBackButton() {
     backBtn.className = 'icon-btn back-btn hidden';
     backBtn.innerHTML = '<i class="fas fa-arrow-left"></i>';
     backBtn.addEventListener('click', () => {
-        if (currentScreen === 'diary' || currentScreen === 'attendance' || currentScreen === 'leave') {
+        if (currentScreen === 'diary' || currentScreen === 'attendance' || currentScreen === 'leave' || currentScreen === 'editDiary') {
             showScreen('dashboard');
         } else if (currentScreen === 'login') {
             localStorage.removeItem('dm_teacher_session');
@@ -48,7 +49,6 @@ function addCustomBackButton() {
 async function decideScreen() {
     try {
         if (typeof authReady !== 'undefined') await Promise.race([authReady, new Promise(r => setTimeout(r, 3000))]);
-
         const session = localStorage.getItem('dm_teacher_session');
         if (session) {
             const s = JSON.parse(session);
@@ -62,23 +62,23 @@ async function decideScreen() {
         }
         const schoolDoc = await db.collection('schoolInfo').doc('main').get();
         if (!schoolDoc.exists || !schoolDoc.data().isSetupComplete) {
-            UI.toast('⚠️ పాఠశాల సెటప్ పూర్తి కాలేదు.', 'warning', 5000);
+            UI.toast('⚠️ సెటప్ పూర్తి కాలేదు.', 'warning', 5000);
             showScreen('login'); return;
         }
         if (schoolDoc.data().sections?.teacher !== true) {
-            UI.toast('⚠️ Teacher సెక్షన్ ఎనేబుల్ చేయలేదు.', 'warning', 5000);
+            UI.toast('⚠️ Teacher సెక్షన్ ఎనేబుల్ కాలేదు.', 'warning', 5000);
             showScreen('login'); return;
         }
         showScreen('login');
     } catch (error) {
-        console.error('Screen decision error:', error);
+        console.error('Screen decision:', error);
         showScreen('login');
     }
 }
 
 function showScreen(name) {
     currentScreen = name;
-    ['login', 'namePrompt', 'dashboard', 'diary', 'attendance', 'leave'].forEach(s => {
+    ['login', 'namePrompt', 'dashboard', 'diary', 'attendance', 'leave', 'editDiary'].forEach(s => {
         const el = document.getElementById('screen' + capitalize(s));
         if (el) el.classList.add('hidden');
     });
@@ -99,7 +99,7 @@ function showScreen(name) {
     if (title) {
         title.textContent = {
             login: 'Teacher Login', namePrompt: 'Welcome', dashboard: 'Teacher Dashboard',
-            diary: 'Diary', attendance: 'Attendance', leave: 'Leave'
+            diary: 'Diary', attendance: 'Attendance', leave: 'Leave', editDiary: 'Edit Diary'
         }[name] || 'Teacher';
     }
     if (name === 'diary') {
@@ -149,6 +149,8 @@ function bindEvents() {
     if (diaryForm) diaryForm.addEventListener('submit', e => { e.preventDefault(); handleSaveDiary(); });
     const leaveForm = document.getElementById('leaveForm');
     if (leaveForm) leaveForm.addEventListener('submit', e => { e.preventDefault(); handleSaveLeave(); });
+    const editDiaryForm = document.getElementById('editDiaryForm');
+    if (editDiaryForm) editDiaryForm.addEventListener('submit', e => { e.preventDefault(); handleSaveEditDiary(); });
     const attendanceClassSelect = document.getElementById('attendanceClass');
     if (attendanceClassSelect) attendanceClassSelect.addEventListener('change', loadAttendanceStudents);
 }
@@ -160,7 +162,7 @@ async function handleTeacherLogin() {
     const btn = document.getElementById('teacherLoginBtn');
 
     if (!/^\d{10}$/.test(phone)) return showFormError(errorEl, '10 అంకెల ఫోన్ నింపండి.');
-    if (!/^\d{4}$/.test(pin)) return showFormError(errorEl, 'PIN 4 అంకెలు ఉండాలి.');
+    if (!/^\d{4}$/.test(pin)) return showFormError(errorEl, 'PIN 4 అంకెలు.');
 
     btn.disabled = true; btn.textContent = 'లాగిన్...'; hideFormError(errorEl);
 
@@ -228,7 +230,6 @@ async function loadTeacherData() {
     if (hour < 12) greeting = '🌅 శుభోదయం';
     else if (hour < 17) greeting = '☀️ శుభ మధ్యాహ్నం';
     else greeting = '🌙 శుభ సాయంత్రం';
-
     const greetingEl = document.getElementById('greetingText');
     if (greetingEl) greetingEl.textContent = greeting;
     const nameEl = document.getElementById('teacherWelcomeName');
@@ -295,7 +296,7 @@ async function handleOnLeaveToggle(el) {
         await db.collection('users').doc(currentTeacher.id).update({ onLeaveDate: isOn ? today : null });
         UI.toast(isOn ? '✅ Leave గా మార్క్!' : '✅ Leave తీసేయబడింది.', 'success', 3000);
     } catch (err) {
-        console.error('Toggle error:', err);
+        console.error('Toggle:', err);
         UI.toast('Toggle విఫలం.', 'error');
         el.checked = !isOn;
     }
@@ -340,6 +341,9 @@ function populateSubjectsForDiary() {
     });
 }
 
+// =====================================================
+// LOAD MY DIARIES (with Edit button — Step 5.5)
+// =====================================================
 async function loadMyDiaries() {
     if (!currentTeacher) return;
     const container = document.getElementById('myDiariesList');
@@ -349,19 +353,27 @@ async function loadMyDiaries() {
         allTeacherDiaries = [];
         snapshot.forEach(doc => allTeacherDiaries.push({ id: doc.id, ...doc.data() }));
         allTeacherDiaries.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
         if (allTeacherDiaries.length === 0) {
             container.innerHTML = `<div style="text-align: center; padding: var(--space-md); color: var(--text-muted);"><p style="font-size: 0.85rem;">ఇంకా diary entries లేవు</p></div>`;
             return;
         }
+
         container.innerHTML = allTeacherDiaries.slice(0, 10).map(d => {
             let sc = 'status-pending', st = '⏳ Pending';
             if (d.isApproved) { sc = 'status-approved'; st = '✅ Approved'; }
             else if (d.isRejected) { sc = 'status-rejected'; st = '❌ Rejected'; }
+
+            const canEdit = !d.isApproved && !d.isRejected;
+
             return `
             <div style="padding: var(--space-sm) 0; border-bottom: 1px solid var(--border-color);">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                     <span style="font-size: 0.85rem; font-weight: 600;">${escapeHtml(d.className || '—')} • ${escapeHtml(d.subject || '')}</span>
-                    <span class="status-badge ${sc}">${st}</span>
+                    <div style="display: flex; gap: 4px; align-items: center;">
+                        <span class="status-badge ${sc}">${st}</span>
+                        ${canEdit ? `<button class="icon-btn" onclick="openEditDiary('${d.id}')" title="Edit" style="width: 30px; height: 30px; background: var(--primary); color: #fff; font-size: 0.75rem;"><i class="fas fa-edit"></i></button>` : `<button class="icon-btn" disabled title="Locked" style="width: 30px; height: 30px; background: var(--text-muted); color: #fff; font-size: 0.75rem; opacity: 0.5;"><i class="fas fa-lock"></i></button>`}
+                    </div>
                 </div>
                 <p style="font-size: 0.75rem; color: var(--text-muted);">📅 ${escapeHtml(d.date || '—')}</p>
             </div>`;
@@ -419,26 +431,94 @@ async function handleSaveDiary() {
 }
 
 // =====================================================
-// ATTENDANCE — C2 FORMAT
+// EDIT DIARY (Step 5.5)
+// =====================================================
+function openEditDiary(diaryId) {
+    const d = allTeacherDiaries.find(x => x.id === diaryId);
+    if (!d) return;
+
+    if (d.isApproved || d.isRejected) {
+        UI.toast('🔒 HM approve/reject అయిన diary edit చేయలేరు.', 'warning', 4000);
+        return;
+    }
+
+    editingDiaryId = diaryId;
+
+    document.getElementById('editDiaryClass').value = d.className || '';
+    document.getElementById('editDiarySubject').value = d.subject || '';
+    document.getElementById('editDiaryDate').value = d.date || '';
+    document.getElementById('editClassWork').value = d.classWork || d.content || '';
+    document.getElementById('editHomework').value = d.homework || '';
+    document.getElementById('editDiaryError').classList.add('hidden');
+    document.getElementById('editDiaryWarning').classList.add('hidden');
+
+    showScreen('editDiary');
+}
+
+async function handleSaveEditDiary() {
+    if (!editingDiaryId) return;
+
+    const classWork = document.getElementById('editClassWork').value.trim();
+    const homework = document.getElementById('editHomework').value.trim();
+    const errorEl = document.getElementById('editDiaryError');
+    const btn = document.getElementById('editDiarySubmitBtn');
+
+    if (!classWork && !homework) {
+        return showFormError(errorEl, 'కనీసం Class Work లేదా Home Work రాయండి.');
+    }
+
+    btn.disabled = true; btn.innerHTML = 'సేవ్...'; hideFormError(errorEl);
+
+    try {
+        // Re-check: approved కాకూడదు
+        const doc = await db.collection('diary').doc(editingDiaryId).get();
+        if (!doc.exists) {
+            showFormError(errorEl, 'Diary కనుగొనబడలేదు.');
+            btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+            return;
+        }
+        const data = doc.data();
+        if (data.isApproved || data.isRejected) {
+            showFormError(errorEl, '🔒 HM approve/reject అయిన diary edit చేయలేరు.');
+            btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+            return;
+        }
+
+        await db.collection('diary').doc(editingDiaryId).update({
+            content: classWork,
+            classWork: classWork,
+            homework: homework || null,
+            editedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            editedBy: currentTeacher.name
+        });
+
+        UI.toast('✅ Diary update అయ్యింది!', 'success');
+        editingDiaryId = null;
+        await loadMyDiaries();
+        showScreen('dashboard');
+    } catch (error) {
+        console.error('Edit diary:', error);
+        showFormError(errorEl, 'సేవ్ విఫలం.');
+    } finally {
+        btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+    }
+}
+
+// =====================================================
+// ATTENDANCE C2
 // =====================================================
 async function loadAttendanceStudents() {
     const selectedClass = document.getElementById('attendanceClass').value;
     const listContainer = document.getElementById('attendanceList');
     const saveBtn = document.getElementById('saveAttendanceBtn');
-
     if (!selectedClass) {
         listContainer.innerHTML = `<p style="color: var(--text-muted); text-align: center; padding: var(--space-md);">Class ఎంచుకోండి...</p>`;
-        saveBtn.style.display = 'none';
-        return;
+        saveBtn.style.display = 'none'; return;
     }
     listContainer.innerHTML = `<p style="color: var(--text-muted); text-align: center; padding: var(--space-md);">లోడ్...</p>`;
-
     try {
         const classSnap = await db.collection('classrooms').where('className', '==', selectedClass).limit(1).get();
-        if (classSnap.empty) {
-            listContainer.innerHTML = `<p style="color: var(--danger); text-align: center;">Class కనుగొనబడలేదు.</p>`;
-            return;
-        }
+        if (classSnap.empty) { listContainer.innerHTML = `<p style="color: var(--danger); text-align: center;">Class కనుగొనబడలేదు.</p>`; return; }
         const studentsSnap = await db.collection('classrooms').doc(classSnap.docs[0].id).collection('students').get();
         currentStudentsForAttendance = [];
         studentsSnap.forEach(doc => {
@@ -446,20 +526,15 @@ async function loadAttendanceStudents() {
             if (s.isFilled && s.name) currentStudentsForAttendance.push({ id: doc.id, ...s });
         });
         currentStudentsForAttendance.sort((a, b) => parseInt(a.rollNumber) - parseInt(b.rollNumber));
-
         if (currentStudentsForAttendance.length === 0) {
-            listContainer.innerHTML = `<p style="color: var(--text-muted); text-align: center;">విద్యార్థులు లేరు (వివరాలు నింపలేదు).</p>`;
-            return;
+            listContainer.innerHTML = `<p style="color: var(--text-muted); text-align: center;">విద్యార్థులు లేరు.</p>`; return;
         }
-
         const today = new Date();
         const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         const eduYear = getEduYear();
         const month = getMonthName(today);
-
         const attDoc = await db.collection('attendance').doc(eduYear).collection(selectedClass).doc(month).get();
         const existing = attDoc.exists ? (attDoc.data().days?.[dateStr] || {}) : {};
-
         const leaveSnap = await db.collection('leaveLetters')
             .where('status', '==', 'approved').where('className', '==', selectedClass).where('type', '==', 'student').get();
         const approvedLeave = new Set();
@@ -467,7 +542,6 @@ async function loadAttendanceStudents() {
             const l = doc.data();
             if (dateStr >= l.fromDate && dateStr <= l.toDate) approvedLeave.add(l.studentId);
         });
-
         listContainer.innerHTML = currentStudentsForAttendance.map(student => {
             let status = 'present';
             if (approvedLeave.has(student.id)) status = 'leave';
@@ -476,8 +550,7 @@ async function loadAttendanceStudents() {
             const btnColor = status === 'present' ? '#388E3C' : status === 'absent' ? '#D32F2F' : '#F57C00';
             const icon = status === 'present' ? '✓' : status === 'absent' ? '✗' : '🏖️';
             const isLeaveAuto = approvedLeave.has(student.id);
-            return `
-            <div class="attendance-row" data-student-id="${student.id}" data-status="${status}" style="background: ${bg}; display: flex; justify-content: space-between; align-items: center; padding: 10px; border-radius: 8px; margin-bottom: 6px; ${isLeaveAuto ? 'opacity: 0.85;' : ''}">
+            return `<div class="attendance-row" data-student-id="${student.id}" data-status="${status}" style="background: ${bg}; display: flex; justify-content: space-between; align-items: center; padding: 10px; border-radius: 8px; margin-bottom: 6px; ${isLeaveAuto ? 'opacity: 0.85;' : ''}">
                 <div style="flex: 1;">
                     <span style="font-weight: 700; color: var(--primary); margin-right: 8px;">${escapeHtml(student.rollNumber)}</span>
                     <span style="font-size: 0.9rem;">${escapeHtml(student.name)}</span>
@@ -487,7 +560,6 @@ async function loadAttendanceStudents() {
                 `<button onclick="toggleAttendance(this)" style="width: 36px; height: 36px; border-radius: 50%; border: none; background: ${btnColor}; color: #fff; font-size: 1rem; cursor: pointer; font-weight: bold;">${icon}</button>`}
             </div>`;
         }).join('');
-
         saveBtn.style.display = 'block';
     } catch (error) {
         console.error('Load attendance:', error);
@@ -500,11 +572,8 @@ function toggleAttendance(btn) {
     const current = row.dataset.status;
     const next = current === 'present' ? 'absent' : 'present';
     row.dataset.status = next;
-    if (next === 'present') {
-        row.style.background = '#E8F5E9'; btn.style.background = '#388E3C'; btn.textContent = '✓';
-    } else {
-        row.style.background = '#FFEBEE'; btn.style.background = '#D32F2F'; btn.textContent = '✗';
-    }
+    if (next === 'present') { row.style.background = '#E8F5E9'; btn.style.background = '#388E3C'; btn.textContent = '✓'; }
+    else { row.style.background = '#FFEBEE'; btn.style.background = '#D32F2F'; btn.textContent = '✗'; }
 }
 
 async function handleSaveAttendance() {
@@ -517,23 +586,18 @@ async function handleSaveAttendance() {
         const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         const eduYear = getEduYear();
         const month = getMonthName(today);
-
         const rows = document.querySelectorAll('.attendance-row');
         const daysData = {};
-        let presentCount = 0, absentCount = 0, leaveCount = 0;
+        let p = 0, a = 0, l = 0;
         rows.forEach(row => {
             const sid = row.dataset.studentId;
             const status = row.dataset.status;
             daysData[sid] = { status, markedBy: currentTeacher.name, markedAt: new Date().toISOString() };
-            if (status === 'present') presentCount++;
-            else if (status === 'absent') absentCount++;
-            else if (status === 'leave') leaveCount++;
+            if (status === 'present') p++; else if (status === 'absent') a++; else if (status === 'leave') l++;
         });
-
         const ref = db.collection('attendance').doc(eduYear).collection(selectedClass).doc(month);
-        const existing = await ref.get();
-        const existingDays = existing.exists ? (existing.data().days || {}) : {};
-
+        const ex = await ref.get();
+        const existingDays = ex.exists ? (ex.data().days || {}) : {};
         await ref.set({
             eduYear, className: selectedClass, month,
             days: { ...existingDays, [dateStr]: daysData },
@@ -541,8 +605,7 @@ async function handleSaveAttendance() {
             lastSubmittedBy: currentTeacher.name,
             lastSubmittedAt: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
-
-        UI.toast(`✅ Attendance సేవ్! Present: ${presentCount}, Absent: ${absentCount}, Leave: ${leaveCount}`, 'success');
+        UI.toast(`✅ Present: ${p}, Absent: ${a}, Leave: ${l}`, 'success');
         showScreen('dashboard');
     } catch (error) {
         console.error('Save attendance:', error);
