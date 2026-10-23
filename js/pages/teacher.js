@@ -362,3 +362,441 @@ async function loadTeacherData() {
     if (phoneEl) phoneEl.textContent = currentTeacher.phone || '—';
 
     populateClassDropdowns();
+    renderAssignedClasses();
+    await loadMyDiaries();
+    await checkOnLeaveToggle();
+}
+
+function populateClassDropdowns() {
+    const assignments = currentTeacher.assignments || [];
+    const uniqueClasses = [...new Set(assignments.map(a => a.className))];
+
+    const diaryClassSelect = document.getElementById('diaryClass');
+    if (diaryClassSelect) {
+        diaryClassSelect.innerHTML = '<option value="">-- Class ఎంచుకోండి --</option>';
+        uniqueClasses.forEach(className => {
+            const opt = document.createElement('option');
+            opt.value = className;
+            opt.textContent = className;
+            diaryClassSelect.appendChild(opt);
+        });
+        diaryClassSelect.addEventListener('change', populateSubjectsForDiary);
+    }
+
+    const attendanceClassSelect = document.getElementById('attendanceClass');
+    if (attendanceClassSelect) {
+        attendanceClassSelect.innerHTML = '<option value="">-- Class ఎంచుకోండి --</option>';
+        uniqueClasses.forEach(className => {
+            const opt = document.createElement('option');
+            opt.value = className;
+            opt.textContent = className;
+            attendanceClassSelect.appendChild(opt);
+        });
+    }
+}
+
+// =====================================================
+// ASSIGNED CLASSES (NEW)
+// =====================================================
+function renderAssignedClasses() {
+    const container = document.getElementById('assignedClassesList');
+    if (!container) return;
+
+    const assignments = currentTeacher.assignments || [];
+    if (assignments.length === 0) {
+        container.innerHTML = `<p style="color: var(--text-muted); text-align: center; font-size: 0.85rem;">Classes assign చేయలేదు. HM ని సంప్రదించండి.</p>`;
+        return;
+    }
+
+    const grouped = {};
+    assignments.forEach(a => {
+        if (!grouped[a.className]) grouped[a.className] = [];
+        grouped[a.className].push(a.subject);
+    });
+
+    container.innerHTML = Object.entries(grouped).map(([className, subjects]) => `
+        <div style="padding: var(--space-sm); border-bottom: 1px solid var(--border-color);">
+            <div style="font-weight: 700; color: var(--primary); margin-bottom: 4px;">${escapeHtml(className)}</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">
+                ${subjects.map(s => `📖 ${escapeHtml(s)}`).join(' • ')}
+            </div>
+        </div>
+    `).join('');
+}
+
+// =====================================================
+// "I AM ON LEAVE" TOGGLE (NEW)
+// =====================================================
+async function handleOnLeaveToggle(el) {
+    if (!currentTeacher) return;
+
+    const isOn = el.checked;
+    const today = new Date().toISOString().split('T')[0];
+
+    try {
+        await db.collection('users').doc(currentTeacher.id).update({
+            onLeaveDate: isOn ? today : null
+        });
+
+        if (isOn) {
+            UI.toast('✅ ఈరోజు Leave గా మార్క్ అయింది.', 'success', 4000);
+        } else {
+            UI.toast('✅ Leave మార్క్ తీసేయబడింది.', 'info');
+        }
+    } catch (err) {
+        console.error('Leave toggle error:', err);
+        UI.toast('Leave toggle విఫలమైంది.', 'error');
+        el.checked = !isOn;
+    }
+}
+
+async function checkOnLeaveToggle() {
+    if (!currentTeacher) return;
+    try {
+        const doc = await db.collection('users').doc(currentTeacher.id).get();
+        const data = doc.data() || {};
+        const today = new Date().toISOString().split('T')[0];
+        const isOnLeaveToday = data.onLeaveDate === today;
+
+        const toggle = document.getElementById('onLeaveToggle');
+        if (toggle) toggle.checked = isOnLeaveToday;
+    } catch (err) {
+        console.warn('Toggle check error:', err);
+    }
+}
+
+// =====================================================
+// DIARY — MULTI SUBJECT
+// =====================================================
+function populateSubjectsForDiary() {
+    const classSelect = document.getElementById('diaryClass');
+    const container = document.getElementById('subjectsContainer');
+    if (!classSelect || !container) return;
+
+    const selectedClass = classSelect.value;
+    container.innerHTML = '';
+
+    if (!selectedClass) return;
+
+    const assignments = currentTeacher.assignments || [];
+    const subjects = assignments
+        .filter(a => a.className === selectedClass)
+        .map(a => a.subject);
+
+    if (subjects.length === 0) {
+        container.innerHTML = `<p style="text-align: center; color: var(--text-muted);">ఈ క్లాస్ కి సబ్జెక్టులు లేవు.</p>`;
+        return;
+    }
+
+    subjects.forEach((subject, index) => {
+        const div = document.createElement('div');
+        div.style.cssText = 'background: var(--bg-color); padding: var(--space-md); border-radius: var(--radius-md); border: 1px solid var(--border-color);';
+        div.innerHTML = `
+            <h4 style="color: var(--primary); margin-bottom: var(--space-sm); font-size: 1rem;">📚 ${escapeHtml(subject)}</h4>
+            <div class="field">
+                <label for="classwork_${index}">Class Work</label>
+                <textarea id="classwork_${index}" data-subject="${escapeHtml(subject)}" class="classwork-input" rows="3" placeholder="ఏమి చెప్పారు?" style="height: auto; min-height: 70px; padding: 10px; resize: vertical;"></textarea>
+            </div>
+            <div class="field" style="margin-top: var(--space-sm);">
+                <label for="homework_${index}">Home Work</label>
+                <textarea id="homework_${index}" data-subject="${escapeHtml(subject)}" class="homework-input" rows="2" placeholder="Homework (ఐచ్ఛికం)" style="height: auto; min-height: 60px; padding: 10px; resize: vertical;"></textarea>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+async function loadMyDiaries() {
+    if (!currentTeacher) return;
+
+    const container = document.getElementById('myDiariesList');
+    if (container) {
+        container.innerHTML = `<p style="color: var(--text-muted); text-align: center; padding: var(--space-sm);">లోడ్ అవుతోంది...</p>`;
+    }
+
+    try {
+        const snapshot = await db.collection('diary')
+            .where('teacherId', '==', currentTeacher.id)
+            .get();
+
+        allTeacherDiaries = [];
+        snapshot.forEach(doc => {
+            allTeacherDiaries.push({ id: doc.id, ...doc.data() });
+        });
+
+        allTeacherDiaries.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+        if (allTeacherDiaries.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: var(--space-md); color: var(--text-muted);">
+                    <p style="font-size: 0.85rem;">ఇంకా diary entries లేవు</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = allTeacherDiaries.slice(0, 10).map(d => {
+            let statusClass = 'status-pending', statusText = '⏳ Pending';
+            if (d.isApproved) { statusClass = 'status-approved'; statusText = '✅ Approved'; }
+            else if (d.isRejected) { statusClass = 'status-rejected'; statusText = '❌ Rejected'; }
+
+            return `
+            <div style="padding: var(--space-sm) 0; border-bottom: 1px solid var(--border-color);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <span style="font-size: 0.85rem; font-weight: 600;">${escapeHtml(d.className || '—')} • ${escapeHtml(d.subject || '')}</span>
+                    <span class="status-badge ${statusClass}">${statusText}</span>
+                </div>
+                <p style="font-size: 0.75rem; color: var(--text-muted);">📅 ${escapeHtml(d.date || '—')}</p>
+            </div>
+            `;
+        }).join('');
+    } catch (error) {
+        console.error('Load diaries error:', error);
+    }
+}
+
+async function handleSaveDiary() {
+    if (!currentTeacher) return;
+
+    const date = document.getElementById('diaryDate').value;
+    const className = document.getElementById('diaryClass').value;
+    const errorEl = document.getElementById('diaryError');
+    const btn = document.getElementById('diarySubmitBtn');
+
+    if (!date) return showFormError(errorEl, 'తేదీ ఎంచుకోండి.');
+    if (!className) return showFormError(errorEl, 'Class ఎంచుకోండి.');
+
+    const classworkInputs = document.querySelectorAll('.classwork-input');
+    const homeworkInputs = document.querySelectorAll('.homework-input');
+
+    if (classworkInputs.length === 0) {
+        return showFormError(errorEl, 'సబ్జెక్టులు లోడ్ అవ్వలేదు. Class మళ్లీ ఎంచుకోండి.');
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = 'సేవ్ అవుతోంది...';
+    hideFormError(errorEl);
+
+    try {
+        const batch = db.batch();
+        let hasContent = false;
+
+        classworkInputs.forEach((cwInput, index) => {
+            const subject = cwInput.getAttribute('data-subject');
+            const classWork = cwInput.value.trim();
+            const homework = homeworkInputs[index] ? homeworkInputs[index].value.trim() : '';
+
+            if (classWork || homework) {
+                hasContent = true;
+                const diaryRef = db.collection('diary').doc();
+                batch.set(diaryRef, {
+                    teacherId: currentTeacher.id,
+                    teacherName: currentTeacher.name,
+                    teacherPhone: currentTeacher.phone,
+                    date: date,
+                    className: className,
+                    subject: subject,
+                    content: classWork,
+                    classWork: classWork,
+                    homework: homework || null,
+                    isApproved: false,
+                    isRejected: false,
+                    approvedAt: null,
+                    approvedBy: null,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            }
+        });
+
+        if (!hasContent) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane" style="margin-right: 8px;"></i> Save & Send to HM';
+            return showFormError(errorEl, 'కనీసం ఒక సబ్జెక్ట్ కి Class Work లేదా Home Work రాయండి.');
+        }
+
+        await batch.commit();
+
+        UI.toast('✅ Diary విజయవంతంగా HM కి పంపబడింది!', 'success');
+        document.getElementById('diaryForm').reset();
+        document.getElementById('subjectsContainer').innerHTML = '';
+        await loadMyDiaries();
+        showScreen('dashboard');
+    } catch (error) {
+        console.error('Save diary error:', error);
+        showFormError(errorEl, 'సేవ్ విఫలమైంది. మళ్లీ ప్రయత్నించండి.');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-paper-plane" style="margin-right: 8px;"></i> Save & Send to HM';
+    }
+}
+
+// =====================================================
+// ATTENDANCE (Old format — C2 in Step 5.4)
+// =====================================================
+async function loadAttendanceStudents() {
+    const classSelect = document.getElementById('attendanceClass');
+    const selectedClass = classSelect.value;
+    const listContainer = document.getElementById('attendanceList');
+    const saveBtn = document.getElementById('saveAttendanceBtn');
+
+    if (!selectedClass) {
+        listContainer.innerHTML = `<p style="color: var(--text-muted); text-align: center; padding: var(--space-md);">Class ఎంచుకోండి...</p>`;
+        saveBtn.style.display = 'none';
+        return;
+    }
+
+    listContainer.innerHTML = `<p style="color: var(--text-muted); text-align: center; padding: var(--space-md);">లోడ్ అవుతోంది...</p>`;
+
+    try {
+        const classSnap = await db.collection('classrooms').where('className', '==', selectedClass).limit(1).get();
+        if (classSnap.empty) {
+            listContainer.innerHTML = `<p style="color: var(--danger); text-align: center;">Class కనుగొనబడలేదు.</p>`;
+            return;
+        }
+        const classId = classSnap.docs[0].id;
+
+        const studentsSnap = await db.collection('classrooms').doc(classId).collection('students').get();
+
+        currentStudentsForAttendance = [];
+        studentsSnap.forEach(doc => {
+            currentStudentsForAttendance.push({ id: doc.id, ...doc.data() });
+        });
+
+        currentStudentsForAttendance.sort((a, b) => parseInt(a.rollNumber) - parseInt(b.rollNumber));
+
+        if (currentStudentsForAttendance.length === 0) {
+            listContainer.innerHTML = `<p style="color: var(--text-muted); text-align: center;">ఈ Class లో విద్యార్థులు లేరు.</p>`;
+            return;
+        }
+
+        listContainer.innerHTML = currentStudentsForAttendance.map(student => `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-sm); border-bottom: 1px solid var(--border-color);">
+                <div>
+                    <span style="font-weight: 700; color: var(--primary); margin-right: 8px;">${escapeHtml(student.rollNumber)}</span>
+                    <span>${escapeHtml(student.name || 'Name Not Filled')}</span>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" class="attendance-checkbox" data-student-id="${student.id}" checked />
+                    <span class="slider round"></span>
+                </label>
+            </div>
+        `).join('');
+
+        saveBtn.style.display = 'block';
+    } catch (error) {
+        console.error('Load attendance error:', error);
+        listContainer.innerHTML = `<p style="color: var(--danger); text-align: center;">లోడ్ విఫలమైంది.</p>`;
+    }
+}
+
+async function handleSaveAttendance() {
+    const selectedClass = document.getElementById('attendanceClass').value;
+    const btn = document.getElementById('saveAttendanceBtn');
+    if (!selectedClass) return;
+
+    btn.disabled = true;
+    btn.innerHTML = 'సేవ్ అవుతోంది...';
+
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        const checkboxes = document.querySelectorAll('.attendance-checkbox');
+        const batch = db.batch();
+        let presentCount = 0, absentCount = 0;
+
+        checkboxes.forEach(cb => {
+            const studentId = cb.getAttribute('data-student-id');
+            const isPresent = cb.checked;
+            if (isPresent) presentCount++; else absentCount++;
+
+            const attendanceRef = db.collection('attendance').doc(`${today}_${studentId}`);
+            batch.set(attendanceRef, {
+                date: today,
+                studentId: studentId,
+                className: selectedClass,
+                status: isPresent ? 'present' : 'absent',
+                markedBy: currentTeacher.name,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        });
+
+        await batch.commit();
+        UI.toast(`✅ Attendance సేవ్! Present: ${presentCount}, Absent: ${absentCount}`, 'success');
+        showScreen('dashboard');
+    } catch (error) {
+        console.error('Save attendance error:', error);
+        UI.toast('❌ సేవ్ విఫలమైంది.', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save" style="margin-right: 8px;"></i> Save Attendance';
+    }
+}
+
+// =====================================================
+// LEAVE
+// =====================================================
+async function handleSaveLeave() {
+    if (!currentTeacher) return;
+
+    const fromDate = document.getElementById('leaveFrom').value;
+    const toDate = document.getElementById('leaveTo').value;
+    const reason = document.getElementById('leaveReason').value.trim();
+    const errorEl = document.getElementById('leaveError');
+    const btn = document.getElementById('leaveSubmitBtn');
+
+    if (!fromDate || !toDate) return showFormError(errorEl, 'From/To తేదీలు ఎంచుకోండి.');
+    if (new Date(toDate) < new Date(fromDate)) return showFormError(errorEl, 'To Date, From Date కన్నా తర్వాత ఉండాలి.');
+    if (!reason) return showFormError(errorEl, 'కారణం రాయండి.');
+
+    btn.disabled = true;
+    btn.innerHTML = 'సబ్మిట్ అవుతోంది...';
+    hideFormError(errorEl);
+
+    try {
+        await db.collection('leaveLetters').add({
+            teacherId: currentTeacher.id,
+            teacherName: currentTeacher.name,
+            teacherPhone: currentTeacher.phone,
+            fromDate: fromDate,
+            toDate: toDate,
+            reason: reason,
+            status: 'pending',
+            type: 'teacher',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        UI.toast('✅ Leave విజయవంతంగా సబ్మిట్ అయ్యింది!', 'success');
+        document.getElementById('leaveForm').reset();
+        showScreen('dashboard');
+    } catch (error) {
+        console.error('Leave error:', error);
+        showFormError(errorEl, 'సబ్మిట్ విఫలమైంది. మళ్లీ ప్రయత్నించండి.');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-paper-plane" style="margin-right: 8px;"></i> Leave Submit చేయండి';
+    }
+}
+
+// =====================================================
+// HELPERS
+// =====================================================
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function showFormError(el, message) {
+    if (el) {
+        el.textContent = message;
+        el.classList.remove('hidden');
+    } else if (typeof UI !== 'undefined') {
+        UI.toast(message, 'error');
+    }
+}
+
+function hideFormError(el) {
+    if (!el) return;
+    el.textContent = '';
+    el.classList.add('hidden');
+}
