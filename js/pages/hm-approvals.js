@@ -1,20 +1,15 @@
-// js/pages/hm-approvals.js
+// js/pages/hm-approvals.js — v12.0 (Step 4.9)
+// Quick diary approvals view (backup of hm-diary.html)
 
-let currentTab = 'pending'; // 'pending' | 'approved'
+let currentTab = 'pending';
 let allDiaries = [];
-let teacherMap = {}; // teacherId → teacher name
+let teacherMap = {};
 
-// =====================================================
-// INIT
-// =====================================================
 document.addEventListener('DOMContentLoaded', async () => {
     const savedTheme = localStorage.getItem('dm_theme') || 'light';
     document.body.setAttribute('data-theme', savedTheme);
-
     const savedSize = localStorage.getItem('dm_font_size');
-    if (savedSize) {
-        document.documentElement.style.setProperty('--base-font-size', savedSize + 'px');
-    }
+    if (savedSize) document.documentElement.style.setProperty('--base-font-size', savedSize + 'px');
 
     const session = Auth.checkAuth('headmaster');
     if (!session) return;
@@ -25,6 +20,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (splash) splash.classList.add('hidden');
         if (app) app.classList.remove('hidden');
         setTimeout(() => splash && splash.remove(), 500);
+        addCustomBackButton();
         await loadTeachersMap();
         await loadDiaries();
     }, 1200);
@@ -32,47 +28,44 @@ document.addEventListener('DOMContentLoaded', async () => {
     bindEvents();
 });
 
-// =====================================================
-// LOAD TEACHERS MAP (id → name)
-// =====================================================
+function addCustomBackButton() {
+    const header = document.querySelector('.app-header');
+    if (!header) return;
+    let backBtn = header.querySelector('#backBtn');
+    if (backBtn) backBtn.remove();
+    backBtn = document.createElement('button');
+    backBtn.id = 'backBtn';
+    backBtn.className = 'icon-btn back-btn';
+    backBtn.setAttribute('aria-label', 'Back');
+    backBtn.innerHTML = '<i class="fas fa-arrow-left"></i>';
+    backBtn.addEventListener('click', () => window.location.href = 'hm-dashboard.html');
+    header.insertBefore(backBtn, header.firstChild);
+}
+
 async function loadTeachersMap() {
     try {
         if (typeof authReady !== 'undefined') {
-            await Promise.race([
-                authReady,
-                new Promise(resolve => setTimeout(resolve, 3000))
-            ]);
+            await Promise.race([authReady, new Promise(r => setTimeout(r, 3000))]);
         }
-
         const snapshot = await db.collection('users').get();
         snapshot.forEach(doc => {
             const data = doc.data();
-            if (data.role === 'teacher') {
-                teacherMap[doc.id] = data.name || 'Teacher';
-            }
+            if (data.role === 'teacher') teacherMap[doc.id] = data.name || 'Teacher';
         });
     } catch (error) {
         console.error('Load teachers error:', error);
     }
 }
 
-// =====================================================
-// LOAD DIARIES
-// =====================================================
 async function loadDiaries() {
     const listEl = document.getElementById('diaryList');
-    if (listEl) {
-        listEl.innerHTML = `<p style="color: var(--text-muted); text-align: center; padding: var(--space-md);">లోడ్ అవుతోంది...</p>`;
-    }
+    if (listEl) listEl.innerHTML = `<p style="color: var(--text-muted); text-align: center; padding: var(--space-md);">లోడ్ అవుతోంది...</p>`;
 
     try {
         const snapshot = await db.collection('diary').get();
         allDiaries = [];
-        snapshot.forEach(doc => {
-            allDiaries.push({ id: doc.id, ...doc.data() });
-        });
+        snapshot.forEach(doc => allDiaries.push({ id: doc.id, ...doc.data() }));
 
-        // Sort by date descending
         allDiaries.sort((a, b) => {
             const da = a.date || '';
             const db_ = b.date || '';
@@ -84,66 +77,42 @@ async function loadDiaries() {
     } catch (error) {
         console.error('Load diaries error:', error);
         if (listEl) {
-            listEl.innerHTML = `
-                <div style="text-align: center; padding: var(--space-xl); color: var(--text-muted);">
-                    <i class="fas fa-inbox" style="font-size: 3rem; opacity: 0.3; margin-bottom: var(--space-md);"></i>
-                    <p>Diary entries లోడ్ అవ్వలేదు</p>
-                    <p style="font-size: 0.8rem; margin-top: 4px;">Teachers diary రాసిన తర్వాత ఇక్కడ కనిపిస్తాయి</p>
-                </div>
-            `;
+            listEl.innerHTML = `<div style="text-align: center; padding: var(--space-xl); color: var(--text-muted);">
+                <i class="fas fa-inbox" style="font-size: 3rem; opacity: 0.3; margin-bottom: var(--space-md);"></i>
+                <p>Diary entries లోడ్ అవ్వలేదు</p>
+            </div>`;
         }
     }
 }
 
-// =====================================================
-// STATS
-// =====================================================
 function renderStats() {
-    const pending = allDiaries.filter(d => !d.isApproved).length;
+    const pending = allDiaries.filter(d => !d.isApproved && !d.isRejected).length;
     const approved = allDiaries.filter(d => d.isApproved).length;
-
     document.getElementById('pendingCount').textContent = pending;
     document.getElementById('approvedCount').textContent = approved;
 }
 
-// =====================================================
-// TAB SWITCH
-// =====================================================
 function switchTab(tab) {
     currentTab = tab;
-
-    const tabPending = document.getElementById('tabPending');
-    const tabApproved = document.getElementById('tabApproved');
-
-    if (tab === 'pending') {
-        tabPending.className = 'btn btn-primary';
-        tabApproved.className = 'btn btn-outline';
-    } else {
-        tabPending.className = 'btn btn-outline';
-        tabApproved.className = 'btn btn-primary';
-    }
-
+    document.getElementById('tabPending').className = tab === 'pending' ? 'btn btn-primary' : 'btn btn-outline';
+    document.getElementById('tabApproved').className = tab === 'approved' ? 'btn btn-primary' : 'btn btn-outline';
     renderDiaries();
 }
 
-// =====================================================
-// RENDER DIARIES
-// =====================================================
 function renderDiaries() {
     const container = document.getElementById('diaryList');
     if (!container) return;
 
-    const filtered = allDiaries.filter(d =>
-        currentTab === 'pending' ? !d.isApproved : d.isApproved
-    );
+    const filtered = allDiaries.filter(d => {
+        if (currentTab === 'pending') return !d.isApproved && !d.isRejected;
+        return d.isApproved === true;
+    });
 
     if (filtered.length === 0) {
-        container.innerHTML = `
-            <div style="text-align: center; padding: var(--space-xl); color: var(--text-muted);">
-                <i class="fas fa-inbox" style="font-size: 3rem; opacity: 0.3; margin-bottom: var(--space-md);"></i>
-                <p>${currentTab === 'pending' ? 'Pending diaries లేవు' : 'Approved diaries లేవు'}</p>
-            </div>
-        `;
+        container.innerHTML = `<div style="text-align: center; padding: var(--space-xl); color: var(--text-muted);">
+            <i class="fas fa-inbox" style="font-size: 3rem; opacity: 0.3; margin-bottom: var(--space-md);"></i>
+            <p>${currentTab === 'pending' ? 'Pending diaries లేవు' : 'Approved diaries లేవు'}</p>
+        </div>`;
         return;
     }
 
@@ -160,18 +129,20 @@ function renderDiaries() {
                                 ${isApproved ? '✅ Approved' : '⏳ Pending'}
                             </span>
                             ${diary.className ? `<span style="font-size: 0.7rem; background: var(--primary); color: #fff; padding: 2px 8px; border-radius: 12px; font-weight: 600;">${escapeHtml(diary.className)}</span>` : ''}
+                            ${diary.subject ? `<span style="font-size: 0.7rem; background: var(--text-muted); color: #fff; padding: 2px 8px; border-radius: 12px; font-weight: 600;">${escapeHtml(diary.subject)}</span>` : ''}
                         </div>
                         <h4 style="font-size: 1rem; margin-bottom: 4px;">👨‍🏫 ${escapeHtml(teacherName)}</h4>
                         <p style="font-size: 0.75rem; color: var(--text-muted);">📅 ${escapeHtml(diary.date || '—')}</p>
                     </div>
                 </div>
-                <p style="font-size: 0.85rem; color: var(--text-main); line-height: 1.6; margin-bottom: var(--space-sm); white-space: pre-wrap;">${escapeHtml(diary.content || '—')}</p>
+                <p style="font-size: 0.85rem; color: var(--text-main); line-height: 1.6; margin-bottom: var(--space-sm); white-space: pre-wrap;">${escapeHtml(diary.content || diary.classWork || '—')}</p>
+                ${diary.homework ? `<p style="font-size: 0.8rem; color: var(--primary); margin-bottom: var(--space-sm);"><strong>📝 Homework:</strong> ${escapeHtml(diary.homework)}</p>` : ''}
                 ${!isApproved ? `
                     <div style="display: flex; gap: var(--space-sm);">
                         <button class="btn btn-primary" onclick="approveDiary('${diary.id}')" style="flex: 1; padding: 10px; font-size: 0.85rem;">
                             <i class="fas fa-check" style="margin-right: 6px;"></i> Approve
                         </button>
-                        <button class="btn btn-outline" onclick="rejectDiary('${diary.id}')" style="flex: 1; padding: 10px; font-size: 0.85rem;">
+                        <button class="btn btn-danger" onclick="rejectDiary('${diary.id}')" style="flex: 1; padding: 10px; font-size: 0.85rem;">
                             <i class="fas fa-times" style="margin-right: 6px;"></i> Reject
                         </button>
                     </div>
@@ -185,22 +156,17 @@ function renderDiaries() {
     }).join('');
 }
 
-// =====================================================
-// APPROVE DIARY
-// =====================================================
 async function approveDiary(diaryId) {
     try {
         const session = JSON.parse(localStorage.getItem('dm_session') || '{}');
         await db.collection('diary').doc(diaryId).update({
             isApproved: true,
+            isRejected: false,
             approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
             approvedBy: session.name || 'HM'
         });
-
-        // Update local cache
         const d = allDiaries.find(x => x.id === diaryId);
         if (d) d.isApproved = true;
-
         UI.toast('✅ Diary అప్రూవ్ అయ్యింది!', 'success');
         renderStats();
         renderDiaries();
@@ -210,58 +176,47 @@ async function approveDiary(diaryId) {
     }
 }
 
-// =====================================================
-// REJECT DIARY (Delete or mark as rejected)
-// =====================================================
 async function rejectDiary(diaryId) {
-    if (!confirm('ఈ diary entry ని తీసేయాలా? (Teacher కి తెలియదు)')) return;
+    const reason = prompt('Reject కారణం (optional):');
+    if (reason === null) return;
 
     try {
-        await db.collection('diary').doc(diaryId).delete();
-
-        // Remove from local cache
-        allDiaries = allDiaries.filter(x => x.id !== diaryId);
-
-        UI.toast('🗑️ Diary entry తీసేయబడింది.', 'success');
+        const session = JSON.parse(localStorage.getItem('dm_session') || '{}');
+        await db.collection('diary').doc(diaryId).update({
+            isApproved: false,
+            isRejected: true,
+            rejectedBy: session.name || 'HM',
+            rejectedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            rejectionReason: reason || ''
+        });
+        const d = allDiaries.find(x => x.id === diaryId);
+        if (d) { d.isRejected = true; d.isApproved = false; }
+        UI.toast('❌ Diary Reject అయ్యింది.', 'success');
         renderStats();
         renderDiaries();
     } catch (error) {
         console.error('Reject error:', error);
-        UI.toast('❌ తీసేయడం విఫలమైంది.', 'error');
+        UI.toast('❌ Reject విఫలమైంది.', 'error');
     }
 }
 
-// =====================================================
-// EVENT BINDINGS
-// =====================================================
 function bindEvents() {
     const themeBtn = document.getElementById('themeBtn');
     if (themeBtn) {
         themeBtn.addEventListener('click', () => {
             if (typeof UI !== 'undefined') UI.toggleTheme();
-            const t = document.body.getAttribute('data-theme');
-            themeBtn.textContent = t === 'dark' ? '☀️' : '🌙';
+            themeBtn.textContent = document.body.getAttribute('data-theme') === 'dark' ? '☀️' : '🌙';
         });
     }
-
-    const backBtn = document.getElementById('backBtn');
-    if (backBtn) {
-        backBtn.addEventListener('click', () => {
-            window.location.href = 'hm-dashboard.html';
-        });
-    }
-
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
-            if (confirm('లాగౌట్ చేయాలా?')) Auth.logout();
+            if (typeof UI !== 'undefined' && UI.confirmLogout) UI.confirmLogout();
+            else if (confirm('లాగౌట్ చేయాలా?')) Auth.logout();
         });
     }
 }
 
-// =====================================================
-// HELPERS
-// =====================================================
 function formatDate(timestamp) {
     if (!timestamp) return '';
     try {
@@ -270,9 +225,7 @@ function formatDate(timestamp) {
         const m = (date.getMonth() + 1).toString().padStart(2, '0');
         const y = date.getFullYear();
         return `${d}/${m}/${y}`;
-    } catch (e) {
-        return '';
-    }
+    } catch (e) { return ''; }
 }
 
 function escapeHtml(text) {
