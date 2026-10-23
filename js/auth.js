@@ -1,8 +1,25 @@
-// js/auth.js
+// js/auth.js — Digital Manabadi v12.0
+// Changes:
+//  - Setup re-run protection
+//  - Session timestamp (backward compatible)
+//  - Reset code = 919720 - today (ddmmyy) → result
+//  - setupLog in schoolInfo
+
 const Auth = {
 
     // =====================================================
-    // HM LOGIN — 6 అంకెల PIN + Active చెక్
+    // HELPER — Today ddmmyy
+    // =====================================================
+    _getTodayDDMMYY: function() {
+        const d = new Date();
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const yy = String(d.getFullYear()).slice(-2);
+        return `${dd}${mm}${yy}`;
+    },
+
+    // =====================================================
+    // HM LOGIN — 6 అంకెల PIN + Active check
     // =====================================================
     loginHM: async function(enteredPin) {
         try {
@@ -37,7 +54,7 @@ const Auth = {
                 return { success: false, message: `తప్పు PIN. (${failCount}/5)`, failCount };
             }
 
-            // ✅ HM Active చెక్ — Valiass Disable చేసి ఉంటే login కాకూడదు
+            // HM Active check
             if (schoolData.hm && schoolData.hm.isActive === false) {
                 return { success: false, message: "🔒 మీ ఖాతా నిలిపివేయబడింది. Valiass టీమ్‌ను సంప్రదించండి." };
             }
@@ -55,7 +72,7 @@ const Auth = {
     },
 
     // =====================================================
-    // HM SETUP — 6 అంకెల PIN + hm.isActive
+    // HM SETUP — Valiass code + re-run protection
     // =====================================================
     setupHM: async function(setupData) {
         try {
@@ -64,6 +81,13 @@ const Auth = {
                 return { success: false, message: "PIN 6 అంకెలు ఉండాలి." };
             }
 
+            // ✅ SETUP RE-RUN PROTECTION
+            const existingDoc = await db.collection('schoolInfo').doc('main').get();
+            if (existingDoc.exists && existingDoc.data().isSetupComplete === true) {
+                return { success: false, message: "⚠️ సెటప్ ఇప్పటికే పూర్తి అయింది. HM గారిని సంప్రదించండి." };
+            }
+
+            // Valiass code verify (5 fields last chars + @533340)
             const lastChars =
                 (setupData.district || '').slice(-1) +
                 (setupData.mandal || '').slice(-1) +
@@ -92,6 +116,11 @@ const Auth = {
                     transferredAt: null
                 },
                 sections: { teacher: false, cook: false, parent: false, office: false },
+                setupLog: [{
+                    action: 'setup',
+                    date: new Date().toISOString(),
+                    hmName: setupData.hmName
+                }],
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
 
@@ -106,6 +135,8 @@ const Auth = {
 
     // =====================================================
     // HM PIN RESET
+    // Reset Code = 919720 - today(ddmmyy) → result
+    // Example (23-10-2026): 919720 - 231026 = 688694
     // =====================================================
     resetHMPin: async function(resetCode, newPin) {
         try {
@@ -119,16 +150,13 @@ const Auth = {
                 return { success: false, message: "స్కూల్ సెటప్ పూర్తి కాలేదు." };
             }
 
-            const schoolData = schoolDoc.data();
-            const dob = schoolData.hmDob;
+            // ✅ Reset code = 919720 - today (ddmmyy)
+            const todayNum = parseInt(this._getTodayDDMMYY(), 10);
+            const expectedReset = String(919720 - todayNum);
+            const entered = String(resetCode || '').trim();
 
-            if (!dob) {
-                return { success: false, message: "HM DOB రికార్డ్ లేదు. వాలియాస్ టీమ్ ని సంప్రదించండి." };
-            }
-
-            const expectedReset = '919720-' + String(dob).trim();
-            if (String(resetCode || '').trim() !== expectedReset) {
-                return { success: false, message: "రీసెట్ కోడ్ తప్పు." };
+            if (entered !== expectedReset) {
+                return { success: false, message: "రీసెట్ కోడ్ తప్పు. Valiass టీమ్‌ను సంప్రదించండి." };
             }
 
             await db.collection('schoolInfo').doc('main').update({ hmPin: newPinStr });
@@ -146,7 +174,14 @@ const Auth = {
     // SESSION MANAGEMENT
     // =====================================================
     setSession: function(role, name, displayRole) {
-        const sessionData = { role, name, displayRole, loginTime: new Date().getTime() };
+        const now = Date.now();
+        const sessionData = {
+            role,
+            name,
+            displayRole,
+            loginTime: now,
+            timestamp: now   // ✅ app.js కోసం
+        };
         localStorage.setItem('dm_session', JSON.stringify(sessionData));
     },
 
