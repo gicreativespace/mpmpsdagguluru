@@ -1,20 +1,15 @@
-// js/pages/hm-notice.js
+// js/pages/hm-notice.js — v12.0 (Step 4.4)
+// Changes: Custom back, Home, Logout confirm
 
 let currentScreen = 'list';
 let editingNoticeId = null;
 let allNotices = [];
 
-// =====================================================
-// INIT
-// =====================================================
 document.addEventListener('DOMContentLoaded', async () => {
     const savedTheme = localStorage.getItem('dm_theme') || 'light';
     document.body.setAttribute('data-theme', savedTheme);
-
     const savedSize = localStorage.getItem('dm_font_size');
-    if (savedSize) {
-        document.documentElement.style.setProperty('--base-font-size', savedSize + 'px');
-    }
+    if (savedSize) document.documentElement.style.setProperty('--base-font-size', savedSize + 'px');
 
     const session = Auth.checkAuth('headmaster');
     if (!session) return;
@@ -25,6 +20,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (splash) splash.classList.add('hidden');
         if (app) app.classList.remove('hidden');
         setTimeout(() => splash && splash.remove(), 500);
+        addCustomBackButton();
         await loadNotices();
         showScreen('list');
     }, 1200);
@@ -32,9 +28,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     bindEvents();
 });
 
-// =====================================================
-// SCREEN SWITCHER
-// =====================================================
+function addCustomBackButton() {
+    const header = document.querySelector('.app-header');
+    if (!header) return;
+    let backBtn = header.querySelector('#backBtn');
+    if (backBtn) backBtn.remove();
+
+    backBtn = document.createElement('button');
+    backBtn.id = 'backBtn';
+    backBtn.className = 'icon-btn back-btn';
+    backBtn.setAttribute('aria-label', 'Back');
+    backBtn.innerHTML = '<i class="fas fa-arrow-left"></i>';
+
+    backBtn.addEventListener('click', () => {
+        if (currentScreen === 'form') showScreen('list');
+        else window.location.href = 'hm-dashboard.html';
+    });
+
+    header.insertBefore(backBtn, header.firstChild);
+}
+
 function showScreen(name) {
     currentScreen = name;
     ['list', 'form'].forEach(s => {
@@ -44,41 +57,32 @@ function showScreen(name) {
     const target = document.getElementById('screen' + capitalize(name));
     if (target) target.classList.remove('hidden');
 
-    const title = document.getElementById('pageTitle');
-    if (title) {
-        title.textContent = name === 'list' ? 'Notice Board' : 'Add Notice';
+    const homeBtn = document.getElementById('homeBtn');
+    if (homeBtn) {
+        if (name === 'list') homeBtn.classList.remove('hidden');
+        else homeBtn.classList.add('hidden');
     }
+
+    const title = document.getElementById('pageTitle');
+    if (title) title.textContent = name === 'list' ? 'Notice Board' : 'Add Notice';
 }
 
-function capitalize(s) {
-    return s.charAt(0).toUpperCase() + s.slice(1);
-}
+function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 
-// =====================================================
-// EVENT BINDINGS
-// =====================================================
 function bindEvents() {
     const themeBtn = document.getElementById('themeBtn');
     if (themeBtn) {
         themeBtn.addEventListener('click', () => {
             if (typeof UI !== 'undefined') UI.toggleTheme();
-            const t = document.body.getAttribute('data-theme');
-            themeBtn.textContent = t === 'dark' ? '☀️' : '🌙';
-        });
-    }
-
-    const backBtn = document.getElementById('backBtn');
-    if (backBtn) {
-        backBtn.addEventListener('click', () => {
-            if (currentScreen === 'form') showScreen('list');
-            else window.location.href = 'hm-dashboard.html';
+            themeBtn.textContent = document.body.getAttribute('data-theme') === 'dark' ? '☀️' : '🌙';
         });
     }
 
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
-            if (confirm('లాగౌట్ చేయాలా?')) Auth.logout();
+            if (typeof UI !== 'undefined' && UI.confirmLogout) UI.confirmLogout();
+            else if (confirm('లాగౌట్ చేయాలా?')) Auth.logout();
         });
     }
 
@@ -91,60 +95,40 @@ function bindEvents() {
     }
 }
 
-// =====================================================
-// LOAD NOTICES
-// =====================================================
 async function loadNotices() {
     try {
         if (typeof authReady !== 'undefined') {
-            await Promise.race([
-                authReady,
-                new Promise(resolve => setTimeout(resolve, 3000))
-            ]);
+            await Promise.race([authReady, new Promise(r => setTimeout(r, 3000))]);
         }
 
-        const snapshot = await db.collection('noticeBoard')
-            .orderBy('createdAt', 'desc')
-            .get();
-
+        const snapshot = await db.collection('noticeBoard').orderBy('createdAt', 'desc').get();
         allNotices = [];
-        snapshot.forEach(doc => {
-            allNotices.push({ id: doc.id, ...doc.data() });
-        });
-
+        snapshot.forEach(doc => allNotices.push({ id: doc.id, ...doc.data() }));
         renderNotices();
     } catch (error) {
         console.error('Load notices error:', error);
-        // orderBy fail అయితే (index లేకపోతే), orderBy లేకుండా try
         try {
             const snapshot = await db.collection('noticeBoard').get();
             allNotices = [];
-            snapshot.forEach(doc => {
-                allNotices.push({ id: doc.id, ...doc.data() });
-            });
+            snapshot.forEach(doc => allNotices.push({ id: doc.id, ...doc.data() }));
             renderNotices();
         } catch (e2) {
-            console.error('Load notices retry error:', e2);
+            console.error('Retry error:', e2);
             UI.toast('నోటీసులు లోడ్ అవ్వలేదు.', 'error');
         }
     }
 }
 
-// =====================================================
-// RENDER NOTICES
-// =====================================================
 function renderNotices() {
     const container = document.getElementById('noticesList');
     if (!container) return;
 
     if (allNotices.length === 0) {
-        container.innerHTML = `
-            <div style="text-align: center; padding: var(--space-xl); color: var(--text-muted);">
-                <i class="fas fa-inbox" style="font-size: 3rem; opacity: 0.3; margin-bottom: var(--space-md);"></i>
-                <p>ఇంకా నోటీసులు లేవు</p>
-                <p style="font-size: 0.85rem; margin-top: 4px;">కొత్త నోటీస్ యాడ్ చేయండి</p>
-            </div>
-        `;
+        container.innerHTML = `<div style="text-align: center; padding: var(--space-xl); color: var(--text-muted);">
+            <i class="fas fa-inbox" style="font-size: 3rem; opacity: 0.3; margin-bottom: var(--space-md);"></i>
+            <p>ఇంకా నోటీసులు లేవు</p>
+            <p style="font-size: 0.85rem; margin-top: 4px;">కొత్త నోటీస్ యాడ్ చేయండి</p>
+        </div>`;
         return;
     }
 
@@ -183,9 +167,6 @@ function renderNotices() {
     }).join('');
 }
 
-// =====================================================
-// ADD NOTICE SCREEN
-// =====================================================
 function showAddScreen() {
     editingNoticeId = null;
     document.getElementById('formTitle').textContent = '➕ కొత్త నోటీస్';
@@ -195,13 +176,9 @@ function showAddScreen() {
     showScreen('form');
 }
 
-// =====================================================
-// EDIT NOTICE
-// =====================================================
 function editNotice(noticeId) {
     const notice = allNotices.find(n => n.id === noticeId);
     if (!notice) return;
-
     editingNoticeId = noticeId;
     document.getElementById('formTitle').textContent = '✏️ నోటీస్ ఎడిట్';
     document.getElementById('formDesc').textContent = 'వివరాలు మార్చండి';
@@ -213,9 +190,6 @@ function editNotice(noticeId) {
     showScreen('form');
 }
 
-// =====================================================
-// SAVE NOTICE
-// =====================================================
 async function handleSaveNotice() {
     const title = document.getElementById('noticeTitle').value.trim();
     const content = document.getElementById('noticeContent').value.trim();
@@ -233,10 +207,7 @@ async function handleSaveNotice() {
 
     try {
         const noticeData = {
-            title: title,
-            content: content,
-            category: category,
-            priority: priority,
+            title, content, category, priority,
             postedBy: 'HM',
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
@@ -254,19 +225,15 @@ async function handleSaveNotice() {
         showScreen('list');
     } catch (error) {
         console.error('Save notice error:', error);
-        showFormError(errorEl, 'సేవ్ విఫలమైంది. మళ్లీ ప్రయత్నించండి.');
+        showFormError(errorEl, 'సేవ్ విఫలమైంది.');
     } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-save" style="margin-right: 8px;"></i> Save Notice';
     }
 }
 
-// =====================================================
-// DELETE NOTICE
-// =====================================================
 async function deleteNotice(noticeId, noticeTitle) {
     if (!confirm(`⚠️ "${noticeTitle}" నోటీస్ డిలీట్ చేయాలా?`)) return;
-
     try {
         await db.collection('noticeBoard').doc(noticeId).delete();
         UI.toast('🗑️ నోటీస్ డిలీట్ అయ్యింది!', 'success');
@@ -277,9 +244,6 @@ async function deleteNotice(noticeId, noticeTitle) {
     }
 }
 
-// =====================================================
-// HELPERS
-// =====================================================
 function getCategoryInfo(category) {
     const map = {
         general: { icon: '📌', label: 'General', color: '#1565C0' },
@@ -310,9 +274,7 @@ function formatDate(timestamp) {
         const h = date.getHours().toString().padStart(2, '0');
         const min = date.getMinutes().toString().padStart(2, '0');
         return `${d}/${m}/${y} ${h}:${min}`;
-    } catch (e) {
-        return '—';
-    }
+    } catch (e) { return '—'; }
 }
 
 function escapeHtml(text) {
@@ -323,12 +285,8 @@ function escapeHtml(text) {
 }
 
 function showFormError(el, message) {
-    if (el) {
-        el.textContent = message;
-        el.classList.remove('hidden');
-    } else if (typeof UI !== 'undefined') {
-        UI.toast(message, 'error');
-    }
+    if (el) { el.textContent = message; el.classList.remove('hidden'); }
+    else if (typeof UI !== 'undefined') UI.toast(message, 'error');
 }
 
 function hideFormError(el) {
