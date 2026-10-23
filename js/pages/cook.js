@@ -1,8 +1,16 @@
-// js/pages/cook.js
+// js/pages/cook.js — Digital Manabadi v12.0 (Step 2.4)
+// Changes:
+//  - UI.initLayout() + custom back button
+//  - Welcome "గారు"
+//  - First-time name prompt (NEW)
+//  - Menu send / helper attendance / sponsor → Step 6
 
 let currentScreen = 'login';
 let currentCook = null;
 
+// =====================================================
+// INIT
+// =====================================================
 document.addEventListener('DOMContentLoaded', async () => {
     const savedTheme = localStorage.getItem('dm_theme') || 'light';
     document.body.setAttribute('data-theme', savedTheme);
@@ -12,31 +20,72 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.documentElement.style.setProperty('--base-font-size', savedSize + 'px');
     }
 
+    // ✅ UI init
+    if (typeof UI !== 'undefined') {
+        UI.initLayout();
+    }
+
     setTimeout(async () => {
         const splash = document.getElementById('splash');
         const app = document.getElementById('cookApp');
         if (splash) splash.classList.add('hidden');
         if (app) app.classList.remove('hidden');
         setTimeout(() => splash && splash.remove(), 500);
+
+        addCustomBackButton();
         await decideScreen();
     }, 1200);
 
     bindEvents();
 });
 
+// =====================================================
+// CUSTOM BACK BUTTON
+// =====================================================
+function addCustomBackButton() {
+    const header = document.querySelector('.app-header');
+    if (!header) return;
+
+    let backBtn = header.querySelector('#backBtn');
+    if (backBtn) backBtn.remove();
+
+    backBtn = document.createElement('button');
+    backBtn.id = 'backBtn';
+    backBtn.className = 'icon-btn back-btn hidden';
+    backBtn.setAttribute('aria-label', 'Back');
+    backBtn.innerHTML = '<i class="fas fa-arrow-left"></i>';
+
+    backBtn.addEventListener('click', () => {
+        if (currentScreen === 'login') {
+            localStorage.removeItem('dm_cook_session');
+            window.location.href = 'index.html';
+        }
+    });
+
+    header.insertBefore(backBtn, header.firstChild);
+}
+
+// =====================================================
+// SCREEN DECISION
+// =====================================================
 async function decideScreen() {
     try {
         if (typeof authReady !== 'undefined') {
-            await Promise.race([
-                authReady,
-                new Promise(resolve => setTimeout(resolve, 3000))
-            ]);
+            await Promise.race([authReady, new Promise(r => setTimeout(r, 3000))]);
         }
 
         const session = localStorage.getItem('dm_cook_session');
         if (session) {
             const s = JSON.parse(session);
             currentCook = s;
+
+            const savedName = localStorage.getItem('dm_cook_name');
+            if (!savedName) {
+                showScreen('namePrompt');
+                return;
+            }
+
+            currentCook.name = savedName;
             await loadCookData();
             showScreen('dashboard');
             return;
@@ -44,7 +93,7 @@ async function decideScreen() {
 
         const schoolDoc = await db.collection('schoolInfo').doc('main').get();
         if (!schoolDoc.exists || !schoolDoc.data().isSetupComplete) {
-            UI.toast('⚠️ పాఠశాల సెటప్ పూర్తి కాలేదు. హెడ్‌మాస్టర్‌ని సంప్రదించండి.', 'warning', 5000);
+            UI.toast('⚠️ పాఠశాల సెటప్ పూర్తి కాలేదు.', 'warning', 5000);
             showScreen('login');
             return;
         }
@@ -62,26 +111,37 @@ async function decideScreen() {
     }
 }
 
+// =====================================================
+// SCREEN SWITCHER
+// =====================================================
 function showScreen(name) {
     currentScreen = name;
-    ['login', 'dashboard'].forEach(s => {
+    ['login', 'namePrompt', 'dashboard'].forEach(s => {
         const el = document.getElementById('screen' + capitalize(s));
         if (el) el.classList.add('hidden');
     });
     const target = document.getElementById('screen' + capitalize(name));
     if (target) target.classList.remove('hidden');
 
-    // ✅ backBtn కంట్రోల్ తీసేయబడింది.
+    const backBtn = document.getElementById('backBtn');
+    if (backBtn) {
+        if (name === 'login' || name === 'namePrompt') backBtn.classList.add('hidden');
+        else backBtn.classList.remove('hidden');
+    }
 
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
-        if (name === 'login') logoutBtn.classList.add('hidden');
+        if (name === 'login' || name === 'namePrompt') logoutBtn.classList.add('hidden');
         else logoutBtn.classList.remove('hidden');
     }
 
     const title = document.getElementById('pageTitle');
     if (title) {
-        title.textContent = name === 'login' ? 'Cook Login' : 'Cook Dashboard';
+        title.textContent = {
+            login: 'Cook Login',
+            namePrompt: 'Welcome',
+            dashboard: 'Cook Dashboard'
+        }[name] || 'Cook';
     }
 }
 
@@ -89,17 +149,17 @@ function capitalize(s) {
     return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+// =====================================================
+// EVENT BINDINGS
+// =====================================================
 function bindEvents() {
     const themeBtn = document.getElementById('themeBtn');
     if (themeBtn) {
         themeBtn.addEventListener('click', () => {
             if (typeof UI !== 'undefined') UI.toggleTheme();
-            const t = document.body.getAttribute('data-theme');
-            themeBtn.textContent = t === 'dark' ? '☀️' : '🌙';
+            themeBtn.textContent = document.body.getAttribute('data-theme') === 'dark' ? '☀️' : '🌙';
         });
     }
-
-    // ✅ backBtn ఈవెంట్ తీసేయబడింది.
 
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
@@ -143,8 +203,19 @@ function bindEvents() {
             handleCookLogin();
         });
     }
+
+    const nameForm = document.getElementById('cookNameForm');
+    if (nameForm) {
+        nameForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            handleSaveName();
+        });
+    }
 }
 
+// =====================================================
+// COOK LOGIN
+// =====================================================
 async function handleCookLogin() {
     const phone = document.getElementById('cookPhone').value.trim();
     const pin = document.getElementById('cookPin').value;
@@ -176,29 +247,34 @@ async function handleCookLogin() {
             return showFormError(errorEl, '🔒 మీ ఖాతా నిలిపివేయబడింది. HM ని సంప్రదించండి.');
         }
 
-                // ✅ PIN ఫార్ములా: 9999 - ఫోన్ చివరి 4 అంకెలు
         const last4 = parseInt(phone.slice(-4), 10);
         let expectedPin = 9999 - last4;
         if (expectedPin < 0) expectedPin = expectedPin + 10000;
         expectedPin = String(expectedPin).padStart(4, '0');
 
         const storedPin = String(cookData.masterPin || '').trim();
-        
         if (storedPin !== expectedPin || pin !== expectedPin) {
             return showFormError(errorEl, '❌ తప్పు Master PIN.');
         }
 
         currentCook = {
             id: cookDoc.id,
-            name: cookData.name || 'Cook',
+            name: cookData.name || '',
             phone: cookData.phone,
             role: 'cook'
         };
         localStorage.setItem('dm_cook_session', JSON.stringify(currentCook));
 
-        UI.toast('✅ Login విజయవంతమైంది!', 'success');
-        await loadCookData();
-        showScreen('dashboard');
+        const savedName = localStorage.getItem('dm_cook_name');
+        if (!savedName) {
+            UI.toast('✅ Login విజయవంతమైంది!', 'success');
+            showScreen('namePrompt');
+        } else {
+            currentCook.name = savedName;
+            UI.toast(`✅ స్వాగతం ${savedName} గారు!`, 'success');
+            await loadCookData();
+            showScreen('dashboard');
+        }
     } catch (error) {
         console.error('Login error:', error);
         showFormError(errorEl, 'నెట్‌వర్క్ లోపం. మళ్లీ ప్రయత్నించండి.');
@@ -208,15 +284,47 @@ async function handleCookLogin() {
     }
 }
 
+function handleSaveName() {
+    const name = document.getElementById('cookNameInput').value.trim();
+    const errorEl = document.getElementById('cookNameError');
+
+    if (!name) return showFormError(errorEl, 'మీ పేరు నింపండి.');
+
+    localStorage.setItem('dm_cook_name', name);
+    currentCook.name = name;
+
+    UI.toast(`✅ స్వాగతం ${name} గారు!`, 'success');
+    loadCookData();
+    showScreen('dashboard');
+}
+
+// =====================================================
+// LOAD DATA
+// =====================================================
 async function loadCookData() {
     if (!currentCook) return;
 
-    document.getElementById('cookWelcomeName').textContent = currentCook.name || '—';
-    document.getElementById('cookWelcomePhone').textContent = currentCook.phone || '—';
+    const hour = new Date().getHours();
+    let greeting = '👋 స్వాగతం';
+    if (hour < 12) greeting = '🌅 శుభోదయం';
+    else if (hour < 17) greeting = '☀️ శుభ మధ్యాహ్నం';
+    else greeting = '🌙 శుభ సాయంత్రం';
+
+    const greetingEl = document.getElementById('cookGreetingText');
+    if (greetingEl) greetingEl.textContent = greeting;
+
+    const nameEl = document.getElementById('cookWelcomeName');
+    if (nameEl) nameEl.textContent = `${currentCook.name || '—'} గారు`;
+
+    const phoneEl = document.getElementById('cookWelcomePhone');
+    if (phoneEl) phoneEl.textContent = currentCook.phone || '—';
 
     await loadTodayMenu();
 }
 
+// =====================================================
+// MENU
+// =====================================================
 async function loadTodayMenu() {
     const container = document.getElementById('todayMenu');
     const dateEl = document.getElementById('menuDate');
@@ -231,19 +339,14 @@ async function loadTodayMenu() {
                         String(today.getMonth() + 1).padStart(2, '0') + '-' +
                         String(today.getDate()).padStart(2, '0');
 
-        if (dateEl) {
-            dateEl.textContent = `📅 ${dateStr}`;
-        }
+        if (dateEl) dateEl.textContent = `📅 ${dateStr}`;
 
         const menuDoc = await db.collection('menu').doc(dateStr).get();
-
         if (!menuDoc.exists) {
             renderDefaultMenu(container);
             return;
         }
-
-        const menuData = menuDoc.data();
-        renderMenu(container, menuData, dateStr);
+        renderMenu(container, menuDoc.data(), dateStr);
     } catch (error) {
         console.error('Load menu error:', error);
         renderDefaultMenu(container);
@@ -281,15 +384,12 @@ function renderMenu(container, menuData, dateStr) {
     });
 
     if (!html) {
-        html = `
-            <div style="text-align: center; padding: var(--space-lg); color: var(--text-muted);">
-                <i class="fas fa-utensils" style="font-size: 2.5rem; opacity: 0.3; margin-bottom: var(--space-sm);"></i>
-                <p style="font-size: 0.9rem;">ఈరోజు మెనూ ఇంకా సెట్ చేయలేదు</p>
-                <p style="font-size: 0.75rem; margin-top: 4px;">HM ని సంప్రదించండి</p>
-            </div>
-        `;
+        html = `<div style="text-align: center; padding: var(--space-lg); color: var(--text-muted);">
+            <i class="fas fa-utensils" style="font-size: 2.5rem; opacity: 0.3; margin-bottom: var(--space-sm);"></i>
+            <p style="font-size: 0.9rem;">ఈరోజు మెనూ ఇంకా సెట్ చేయలేదు</p>
+            <p style="font-size: 0.75rem; margin-top: 4px;">HM ని సంప్రదించండి</p>
+        </div>`;
     }
-
     container.innerHTML = html;
 }
 
@@ -311,6 +411,9 @@ function renderDefaultMenu(container) {
     renderMenu(container, menu, dayName);
 }
 
+// =====================================================
+// HELPERS
+// =====================================================
 function escapeHtml(text) {
     if (!text) return '';
     const div = document.createElement('div');
