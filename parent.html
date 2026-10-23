@@ -10,11 +10,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=6" />
+  <link rel="stylesheet" href="style.css?v=29" />
 </head>
 <body class="page-parent">
 
-  <!-- SPLASH -->
   <div id="splash" class="splash-screen">
     <div class="splash-logo" style="font-size:4rem;">👨‍👩‍👧</div>
     <h1 class="splash-title">Parent</h1>
@@ -25,24 +24,21 @@
   <main id="parentApp" class="hm-app hidden">
     <header class="app-header">
       <h1 id="pageTitle" class="app-title">Parent</h1>
-      <!-- Go to Home (no logout) -->
       <button id="goHomeBtn" class="icon-btn hidden" onclick="showScreen('childSelect')" aria-label="My Children" title="My Children">
         <i class="fas fa-home"></i>
       </button>
       <button id="themeBtn" class="icon-btn theme-btn" aria-label="Theme" title="థీమ్">🌙</button>
     </header>
 
-    <!-- SCREEN 1: WELCOME / START -->
+    <!-- SCREEN 1: WELCOME -->
     <section id="screenLogin" class="screen hidden">
       <div class="card card-center">
         <div class="login-icon">👨‍👩‍👧</div>
         <h2 class="card-title">Parent Section</h2>
         <p class="card-desc">మీ పిల్లలను యాడ్ చేసి, వారి వివరాలు చూడండి</p>
-
         <button class="btn btn-primary btn-block" onclick="showScreen('addChild')">
           <i class="fas fa-plus-circle" style="margin-right: 8px;"></i> Child Add చేయండి
         </button>
-
         <button type="button" id="continueBtn" class="link-btn hidden" onclick="showScreen('childSelect')">
           Already added → My Children
         </button>
@@ -54,7 +50,6 @@
       <div class="card">
         <h2 class="card-title">👶 మీ పిల్లలను యాడ్ చేయండి</h2>
         <p class="card-desc">Class + Roll Number ఎంచుకోండి, DOB verify చేయండి</p>
-
         <form id="addChildForm" class="form" novalidate>
           <div class="field">
             <label for="addChildClass">Class</label>
@@ -75,7 +70,6 @@
             <i class="fas fa-check-circle" style="margin-right: 8px;"></i> Child Confirm చేయండి
           </button>
         </form>
-
         <button type="button" id="skipAddChild" class="link-btn" onclick="showScreen('login')">
           <i class="fas fa-arrow-left"></i> వెనక్కి
         </button>
@@ -98,7 +92,6 @@
 
     <!-- SCREEN 4: DASHBOARD -->
     <section id="screenDashboard" class="screen hidden">
-      <!-- Welcome -->
       <div class="welcome-banner" style="background: linear-gradient(135deg, #1565C0, #42A5F5);">
         <div class="welcome-greeting">👋 స్వాగతం</div>
         <div class="welcome-name" id="parentWelcomeName">—</div>
@@ -108,7 +101,6 @@
         </div>
       </div>
 
-      <!-- Tabs -->
       <div class="card" style="padding: var(--space-sm);">
         <div style="display: flex; gap: var(--space-xs); overflow-x: auto;">
           <button id="tabNotices" class="btn btn-primary" onclick="switchTab('notices')" style="flex: 1; padding: 10px; font-size: 0.75rem; white-space: nowrap;">
@@ -134,7 +126,27 @@
       </div>
     </section>
 
-    <!-- FOOTER -->
+    <!-- POSTER MODAL (Step 7.2 — NEW) -->
+    <div id="posterModal" class="modal-overlay" onclick="if(event.target===this)closePosterModal()">
+      <div class="modal-content" style="max-width: 92vw; padding: var(--space-md);">
+        <h3 style="color: var(--primary); margin-bottom: var(--space-sm); text-align: center;">🎨 Diary Poster</h3>
+        <div style="max-height: 60vh; overflow-y: auto; text-align: center;">
+          <canvas id="posterCanvas" style="max-width: 100%; border-radius: var(--radius-md); box-shadow: var(--shadow-lg);"></canvas>
+        </div>
+        <div style="display: flex; gap: var(--space-sm); margin-top: var(--space-md);">
+          <button class="btn btn-outline" onclick="closePosterModal()" style="flex: 1;">
+            <i class="fas fa-times"></i> Close
+          </button>
+          <button class="btn btn-secondary" onclick="sharePosterWhatsApp()" style="flex: 1; background: #25D366; color: #fff;">
+            <i class="fab fa-whatsapp"></i> Share
+          </button>
+          <button class="btn btn-primary" onclick="downloadPoster()" style="flex: 1;">
+            <i class="fas fa-download"></i> Download
+          </button>
+        </div>
+      </div>
+    </div>
+
     <footer class="app-footer">
       An initiative of <span class="valiass-link" onclick="UI.showContact()">@valiass</span> team
     </footer>
@@ -142,15 +154,12 @@
 
   <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
-  <!-- FIREBASE -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-
-  <!-- APP -->
   <script src="js/config.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/auth.js"></script>
-  <script src="js/pages/parent.js?v=6"></script>
+  <script src="js/pages/parent.js?v=29"></script>
 </body>
 </html>
