@@ -1,4 +1,10 @@
-// js/pages/valiass-admin.js
+// js/pages/valiass-admin.js — Digital Manabadi v12.0
+// Changes:
+//  - Setup Principal: hm object add
+//  - Archive/Cleanup screen (Diary, Menu)
+//  - Login page auto-logoff
+//  - Logout confirm
+//  - showScreen updated for archive
 
 let currentScreen = 'loading';
 let currentSchoolData = null;
@@ -22,6 +28,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (splash) splash.classList.add('hidden');
         if (app) app.classList.remove('hidden');
         setTimeout(() => splash && splash.remove(), 500);
+
+        // ✅ Login page — back → auto logoff
+        if (typeof UI !== 'undefined' && typeof UI.initLoginBackLogout === 'function') {
+            UI.initLoginBackLogout();
+        }
+
         await decideScreen();
     }, 1500);
 
@@ -61,7 +73,7 @@ async function decideScreen() {
 // =====================================================
 function showScreen(name) {
     currentScreen = name;
-    ['login', 'dashboard', 'setup', 'edit', 'editForm', 'transfer'].forEach(s => {
+    ['login', 'dashboard', 'setup', 'edit', 'editForm', 'transfer', 'archive'].forEach(s => {
         const el = document.getElementById('screen' + capitalize(s));
         if (el) el.classList.add('hidden');
     });
@@ -70,7 +82,7 @@ function showScreen(name) {
 
     const backBtn = document.getElementById('backBtn');
     if (backBtn) {
-        if (name === 'login') backBtn.classList.add('hidden');
+        if (name === 'login' || name === 'dashboard') backBtn.classList.add('hidden');
         else backBtn.classList.remove('hidden');
     }
 
@@ -91,7 +103,8 @@ function showScreen(name) {
             setup: 'Setup Principal',
             edit: 'Edit Principal',
             editForm: 'Edit HM Details',
-            transfer: 'Transfer HM'
+            transfer: 'Transfer HM',
+            archive: 'Archive & Cleanup'
         }[name] || 'Valiass Admin';
     }
 }
@@ -117,7 +130,7 @@ function bindEvents() {
     if (backBtn) {
         backBtn.addEventListener('click', () => {
             if (currentScreen === 'editForm' || currentScreen === 'transfer') showScreen('edit');
-            else if (currentScreen === 'setup' || currentScreen === 'edit') showScreen('dashboard');
+            else if (currentScreen === 'setup' || currentScreen === 'edit' || currentScreen === 'archive') showScreen('dashboard');
             else showScreen('login');
         });
     }
@@ -125,6 +138,7 @@ function bindEvents() {
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', async () => {
+            if (!confirm('Logout అవ్వాలా?')) return;
             try {
                 await firebase.auth().signOut();
             } catch (e) { console.error(e); }
@@ -205,7 +219,7 @@ function resetPinVisibility() {
 function toggleViewPin() {
     const pinDisplay = document.getElementById('editHmPinDisplay');
     const pinIcon = document.getElementById('viewPinIcon');
-    
+
     if (!currentSchoolData) return;
 
     const actualPin = currentSchoolData.hmPin || 'PIN లేదు';
@@ -227,7 +241,7 @@ function toggleViewPin() {
 // ADMIN LOGIN
 // =====================================================
 async function handleAdminLogin() {
-    const email = document.getElementById('adminEmail').value.trim().replace(/\s/g, ''); 
+    const email = document.getElementById('adminEmail').value.trim().replace(/\s/g, '');
     const password = document.getElementById('adminPassword').value;
     const errorEl = document.getElementById('adminLoginError');
     const btn = document.getElementById('adminLoginBtn');
@@ -309,7 +323,18 @@ async function handleSetupPrincipal() {
             hmPin: pin,
             isSetupComplete: true,
             hmDob: existingData.hmDob || null,
+            // ✅ hm object add
+            hm: existingData.hm || {
+                isActive: true,
+                disabledAt: null,
+                transferredAt: null
+            },
             sections: existingData.sections || { teacher: false, cook: false, parent: false, office: false },
+            setupLog: existingData.setupLog || [{
+                action: 'valiass_setup',
+                date: new Date().toISOString(),
+                hmName: hmName
+            }],
             createdAt: existingData.createdAt || firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
 
@@ -408,8 +433,8 @@ async function handleEditHm() {
 
         await db.collection('schoolInfo').doc('main').update(updateData);
         UI.toast('✅ వివరాలు విజయవంతంగా అప్‌డేట్ అయ్యాయి!', 'success');
-        showScreen('edit');
-        loadEditPrincipal();
+        await loadEditPrincipal();
+        loadEditForm();
     } catch (err) {
         console.error('Edit error:', err);
         showFormError(errorEl, 'అప్‌డేట్ విఫలమైంది. మళ్లీ ప్రయత్నించండి.');
@@ -434,7 +459,7 @@ function loadEditForm() {
     showScreen('editForm');
 }
 
-// Override showScreen for editForm to load data
+// Override showScreen for editForm
 const _originalShowScreen = showScreen;
 showScreen = function(name) {
     _originalShowScreen(name);
@@ -462,7 +487,7 @@ async function handleDisable() {
 
         await logHmHistory(action, data.hmName);
         UI.toast(`✅ HM ${isActive ? 'disable' : 'enable'} అయ్యారు!`, 'success');
-        loadEditPrincipal();
+        await loadEditPrincipal();
     } catch (err) {
         console.error('Disable error:', err);
         UI.toast('లోపం. మళ్లీ ప్రయత్నించండి.', 'error');
@@ -505,7 +530,7 @@ async function handleTransfer() {
         document.getElementById('transferNewName').value = '';
         document.getElementById('transferNewPin').value = '';
         document.getElementById('transferNewPinConfirm').value = '';
-        loadEditPrincipal();
+        await loadEditPrincipal();
     } catch (err) {
         console.error('Transfer error:', err);
         showFormError(errorEl, 'ట్రాన్స్ఫర్ విఫలమైంది.');
@@ -535,6 +560,64 @@ async function handleDelete() {
         console.error('Delete error:', err);
         UI.toast('Delete విఫలమైంది. మళ్లీ ప్రయత్నించండి.', 'error');
     }
+}
+
+// =====================================================
+// ARCHIVE / CLEANUP
+// =====================================================
+async function cleanupDiary() {
+    if (!confirm('1 నెల కంటే పాత Diary entries delete చేయాలా? ఇది తిరిగి తీసుకోలేము!')) return;
+
+    try {
+        const cutoff = new Date();
+        cutoff.setMonth(cutoff.getMonth() - 1);
+        const cutoffStr = cutoff.toISOString().split('T')[0]; // YYYY-MM-DD
+
+        const snap = await db.collection('diary').where('date', '<', cutoffStr).get();
+        if (snap.empty) {
+            UI.toast('ℹ️ పాత Diary entries లేవు.', 'info');
+            return;
+        }
+
+        const batch = db.batch();
+        snap.docs.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+        UI.toast(`✅ ${snap.size} పాత Diary entries delete అయ్యాయి.`, 'success');
+    } catch (err) {
+        console.error('Diary cleanup error:', err);
+        UI.toast('Diary cleanup విఫలమైంది.', 'error');
+    }
+}
+
+async function cleanupMenu() {
+    if (!confirm('7 రోజుల కంటే పాత Menu delete చేయాలా?')) return;
+    try {
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - 7);
+        const cutoffStr = cutoff.toISOString().split('T')[0];
+
+        const snap = await db.collection('menu').where('date', '<', cutoffStr).get();
+        if (snap.empty) {
+            UI.toast('ℹ️ పాత Menu లేదు.', 'info');
+            return;
+        }
+
+        const batch = db.batch();
+        snap.docs.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+        UI.toast(`✅ ${snap.size} పాత Menu delete అయ్యాయి.`, 'success');
+    } catch (err) {
+        console.error('Menu cleanup error:', err);
+        UI.toast('Menu cleanup విఫలమైంది.', 'error');
+    }
+}
+
+async function cleanupAttendance() {
+    UI.toast('ℹ️ Attendance cleanup Step 4 తర్వాత (C2 format).', 'info', 4000);
+}
+
+async function cleanupLeaves() {
+    UI.toast('ℹ️ Leave cleanup Step 4 తర్వాత.', 'info', 4000);
 }
 
 // =====================================================
