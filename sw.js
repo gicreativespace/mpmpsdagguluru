@@ -1,6 +1,5 @@
-// sw.js — Digital Manabadi Service Worker (v24)
-// Added: hm-attendance, cook submissions, cook helpers
-const CACHE_NAME = 'mpmp-cache-v24';
+// sw.js — Digital Manabadi Service Worker (v29 — Final)
+const CACHE_NAME = 'mpmp-cache-v29';
 
 const urlsToCache = [
   './',
