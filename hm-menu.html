@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="te">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#1B5E20" />
+  <title>Menu Management — MPMP School - Dagguluru</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css?v=21" />
+</head>
+<body class="page-menu">
+
+  <div id="splash" class="splash-screen">
+    <div class="splash-logo" style="font-size:4rem;">🍽️</div>
+    <h1 class="splash-title">Menu Management</h1>
+    <p class="splash-sub">MPMP School - Dagguluru</p>
+    <div class="splash-loader"></div>
+  </div>
+
+  <main id="menuApp" class="hm-app hidden">
+    <header class="app-header">
+      <h1 id="pageTitle" class="app-title">Menu Management</h1>
+      <button id="homeBtn" class="icon-btn" onclick="window.location.href='hm-dashboard.html'" aria-label="Home" title="Dashboard">
+        <i class="fas fa-home"></i>
+      </button>
+      <button id="logoutBtn" class="icon-btn logout-btn" aria-label="Logout" title="లాగౌట్">
+        <i class="fas fa-sign-out-alt"></i>
+      </button>
+      <button id="themeBtn" class="icon-btn theme-btn" aria-label="Theme" title="థీమ్">🌙</button>
+    </header>
+
+    <!-- Zone Info -->
+    <div class="card" style="padding: var(--space-sm); margin-bottom: var(--space-sm);">
+      <p style="font-size: 0.75rem; color: var(--text-muted); text-align: center; margin: 0;">
+        📍 Zone 2 — West Godavari | Dokka Seethamma MDM
+      </p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="card" style="padding: var(--space-sm);">
+      <div style="display: flex; gap: var(--space-xs);">
+        <button id="tabTemplate" class="btn btn-primary" onclick="switchTab('template')" style="flex: 1; padding: 10px; font-size: 0.8rem;">
+          📋 Template
+        </button>
+        <button id="tabToday" class="btn btn-outline" onclick="switchTab('today')" style="flex: 1; padding: 10px; font-size: 0.8rem;">
+          📅 Today
+        </button>
+        <button id="tabSponsor" class="btn btn-outline" onclick="switchTab('sponsor')" style="flex: 1; padding: 10px; font-size: 0.8rem;">
+          🎁 Sponsor
+        </button>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div id="tabContent">
+      <p style="color: var(--text-muted); text-align: center; padding: var(--space-md);">లోడ్ అవుతోంది...</p>
+    </div>
+
+    <footer class="app-footer">
+      An initiative of <span class="valiass-link" onclick="UI.showContact()">@valiass</span> team
+    </footer>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+
+  <script src="js/config.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/pages/hm-menu.js?v=21"></script>
+</body>
+</html>
