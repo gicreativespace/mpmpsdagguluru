@@ -1,11 +1,15 @@
-// js/pages/hm-staff.js
+// js/pages/hm-staff.js — Digital Manabadi v12.0 (Step 4.2)
+// Changes:
+//  - Custom back button (form → list → dashboard)
+//  - Home button visible on list screen
+//  - Logout confirm (UI.confirmLogout)
+//  - Subject list confirmed (current OK)
 
 let currentScreen = 'list';
 let currentStaffType = 'teacher';
 let editingStaffId = null;
 let allStaff = [];
 
-// Class & Subject మాస్టర్ లిస్ట్
 const CLASSES = {
     'Class 1': ['Telugu', 'English', 'Maths'],
     'Class 2': ['Telugu', 'English', 'Maths'],
@@ -35,12 +39,41 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (splash) splash.classList.add('hidden');
         if (app) app.classList.remove('hidden');
         setTimeout(() => splash && splash.remove(), 500);
+
+        addCustomBackButton();
         await loadStaffList();
         showScreen('list');
     }, 1200);
 
     bindEvents();
 });
+
+// =====================================================
+// CUSTOM BACK BUTTON
+// =====================================================
+function addCustomBackButton() {
+    const header = document.querySelector('.app-header');
+    if (!header) return;
+
+    let backBtn = header.querySelector('#backBtn');
+    if (backBtn) backBtn.remove();
+
+    backBtn = document.createElement('button');
+    backBtn.id = 'backBtn';
+    backBtn.className = 'icon-btn back-btn';
+    backBtn.setAttribute('aria-label', 'Back');
+    backBtn.innerHTML = '<i class="fas fa-arrow-left"></i>';
+
+    backBtn.addEventListener('click', () => {
+        if (currentScreen === 'form') {
+            showScreen('list');
+        } else {
+            window.location.href = 'hm-dashboard.html';
+        }
+    });
+
+    header.insertBefore(backBtn, header.firstChild);
+}
 
 // =====================================================
 // SCREEN SWITCHER
@@ -53,6 +86,12 @@ function showScreen(name) {
     });
     const target = document.getElementById('screen' + capitalize(name));
     if (target) target.classList.remove('hidden');
+
+    const homeBtn = document.getElementById('homeBtn');
+    if (homeBtn) {
+        if (name === 'list') homeBtn.classList.remove('hidden');
+        else homeBtn.classList.add('hidden');
+    }
 
     const title = document.getElementById('pageTitle');
     if (title) {
@@ -72,15 +111,18 @@ function bindEvents() {
     if (themeBtn) {
         themeBtn.addEventListener('click', () => {
             if (typeof UI !== 'undefined') UI.toggleTheme();
-            const t = document.body.getAttribute('data-theme');
-            themeBtn.textContent = t === 'dark' ? '☀️' : '🌙';
+            themeBtn.textContent = document.body.getAttribute('data-theme') === 'dark' ? '☀️' : '🌙';
         });
     }
 
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
-            if (confirm('లాగౌట్ చేయాలా?')) Auth.logout();
+            if (typeof UI !== 'undefined' && UI.confirmLogout) {
+                UI.confirmLogout();
+            } else if (confirm('లాగౌట్ చేయాలా?')) {
+                Auth.logout();
+            }
         });
     }
 
@@ -190,7 +232,7 @@ function renderStaffGroup(containerId, list, role) {
 }
 
 // =====================================================
-// TOGGLE ACTIVE/INACTIVE (Disable/Enable)
+// TOGGLE ACTIVE/INACTIVE
 // =====================================================
 async function toggleStaffStatus(staffId, currentStatus) {
     const action = currentStatus ? 'Disable' : 'Enable';
@@ -235,7 +277,7 @@ function showAddScreen(type) {
 }
 
 // =====================================================
-// RENDER CLASS & SUBJECT CHECKBOXES
+// RENDER ASSIGNMENTS
 // =====================================================
 function renderAssignmentCheckboxes(selectedAssignments = []) {
     const container = document.getElementById('assignmentsContainer');
@@ -249,7 +291,6 @@ function renderAssignmentCheckboxes(selectedAssignments = []) {
 
         subjects.forEach(subject => {
             const isChecked = selectedAssignments.some(a => a.className === className && a.subject === subject);
-            const id = `assign_${className.replace(/\s/g, '')}_${subject}`;
             html += `
                 <label style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; padding: 4px; cursor: pointer;">
                     <input type="checkbox" value="${className}|${subject}" ${isChecked ? 'checked' : ''} style="width: 18px; height: 18px;" />
@@ -295,7 +336,7 @@ function editStaff(staffId) {
 }
 
 // =====================================================
-// SAVE STAFF (Add or Edit)
+// SAVE STAFF
 // =====================================================
 async function handleSaveStaff() {
     const name = document.getElementById('staffName').value.trim();
@@ -308,14 +349,12 @@ async function handleSaveStaff() {
     if (!/^\d{10}$/.test(phone)) return showFormError(errorEl, 'ఫోన్ నంబర్ 10 అంకెలు ఉండాలి.');
     if (!/^\d{6}$/.test(dob)) return showFormError(errorEl, 'పుట్టిన తేదీ ddmmyy ఫార్మాట్ లో 6 అంకెలు ఉండాలి.');
 
-    // Master PIN ఆటోమేటిక్ జనరేట్ (చివరి 4 అంకెలు)
-            // ✅ PIN ఫార్ములా: 9999 - ఫోన్ చివరి 4 అంకెలు
-        const last4 = parseInt(phone.slice(-4), 10);
-        let autoPin = 9999 - last4;
-        if (autoPin < 0) autoPin = autoPin + 10000; // నెగటివ్ వస్తే సరిచేయి
-        autoPin = String(autoPin).padStart(4, '0'); // ఎప్పుడూ 4 అంకెలు ఉండేలా
+    // Master PIN
+    const last4 = parseInt(phone.slice(-4), 10);
+    let autoPin = 9999 - last4;
+    if (autoPin < 0) autoPin = autoPin + 10000;
+    autoPin = String(autoPin).padStart(4, '0');
 
-    // Teacher అయితే, సెలెక్ట్ చేసిన అసైన్‌మెంట్స్ తీసుకో
     let assignments = [];
     if (currentStaffType === 'teacher') {
         const checkboxes = document.querySelectorAll('#assignmentsContainer input[type="checkbox"]:checked');
