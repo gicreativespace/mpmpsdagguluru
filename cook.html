@@ -10,11 +10,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=6" />
 </head>
 <body class="page-cook">
 
-  <!-- ===== SPLASH SCREEN ===== -->
+  <!-- SPLASH -->
   <div id="splash" class="splash-screen">
     <div class="splash-logo" style="font-size:4rem;">🍳</div>
     <h1 class="splash-title">Cook</h1>
@@ -22,12 +22,8 @@
     <div class="splash-loader"></div>
   </div>
 
-  <!-- ===== MAIN APP ===== -->
   <main id="cookApp" class="hm-app hidden">
-
-    <!-- Header -->
     <header class="app-header">
-      <!-- ✅ పాత బ్యాక్ బటన్ తీసేయబడింది. ui.js ఆటోమేటిక్ గా యాడ్ చేస్తుంది -->
       <h1 id="pageTitle" class="app-title">Cook</h1>
       <button id="logoutBtn" class="icon-btn logout-btn hidden" aria-label="Logout" title="లాగౌట్">
         <i class="fas fa-sign-out-alt"></i>
@@ -35,13 +31,12 @@
       <button id="themeBtn" class="icon-btn theme-btn" aria-label="Theme" title="థీమ్">🌙</button>
     </header>
 
-    <!-- ========== SCREEN 1: LOGIN ========== -->
+    <!-- SCREEN 1: LOGIN -->
     <section id="screenLogin" class="screen hidden">
       <div class="card card-center">
         <div class="login-icon">🍳</div>
         <h2 class="card-title">Cook Login</h2>
         <p class="card-desc">మీ ఫోన్ నంబర్ మరియు PIN నమోదు చేయండి</p>
-
         <form id="cookLoginForm" class="form" novalidate>
           <div class="field">
             <label for="cookPhone">Phone Number</label>
@@ -54,36 +49,51 @@
               <button type="button" class="pin-toggle" data-target="cookPin" aria-label="Show PIN">👁</button>
             </div>
           </div>
-
           <p id="cookLoginError" class="form-error hidden" role="alert"></p>
-
-          <button type="submit" id="cookLoginBtn" class="btn btn-primary btn-block">
-            లాగిన్
-          </button>
+          <button type="submit" id="cookLoginBtn" class="btn btn-primary btn-block">లాగిన్</button>
         </form>
       </div>
     </section>
 
-    <!-- ========== SCREEN 2: DASHBOARD ========== -->
+    <!-- SCREEN 2: NAME PROMPT -->
+    <section id="screenNamePrompt" class="screen hidden">
+      <div class="card card-center">
+        <div class="login-icon">🙏</div>
+        <h2 class="card-title">మీ పేరు ఏంటి?</h2>
+        <p class="card-desc">తర్వాత మీకు పేరుతో పిలవడానికి ఉపయోగపడుతుంది.</p>
+        <form id="cookNameForm" class="form" novalidate>
+          <div class="field">
+            <label for="cookNameInput">మీ పేరు</label>
+            <input type="text" id="cookNameInput" required autocomplete="off" placeholder="ఉదా: లక్ష్మి" />
+          </div>
+          <p id="cookNameError" class="form-error hidden" role="alert"></p>
+          <button type="submit" id="cookNameSubmitBtn" class="btn btn-primary btn-block">సేవ్ చేయండి</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- SCREEN 3: DASHBOARD -->
     <section id="screenDashboard" class="screen hidden">
       <!-- Welcome -->
-      <div class="card" style="background: linear-gradient(135deg, #F57C00, #FF9800); color: #fff; border: none;">
-        <h2 style="font-size: 1.3rem; margin-bottom: 4px;">👋 స్వాగతం!</h2>
-        <p id="cookWelcomeName" style="font-size: 1.1rem; font-weight: 600;">—</p>
-        <p id="cookWelcomePhone" style="font-size: 0.8rem; opacity: 0.9;">—</p>
+      <div class="welcome-banner" style="background: linear-gradient(135deg, #E65100, #F57C00);">
+        <div class="welcome-greeting" id="cookGreetingText">👋 స్వాగతం</div>
+        <div class="welcome-name" id="cookWelcomeName">— గారు</div>
+        <div class="welcome-time">
+          <i class="fas fa-clock"></i>
+          <span id="cookWelcomePhone">—</span>
+        </div>
       </div>
 
       <!-- Today's Menu -->
       <div class="card">
         <h3 class="card-title" style="font-size: 1.1rem; text-align: left;">🍽️ ఈరోజు మెనూ</h3>
         <p id="menuDate" style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: var(--space-md);">—</p>
-
         <div id="todayMenu">
           <p style="color: var(--text-muted); text-align: center; padding: var(--space-md);">లోడ్ అవుతోంది...</p>
         </div>
       </div>
 
-      <!-- Refresh Button -->
+      <!-- Refresh -->
       <button class="btn btn-outline btn-block" onclick="loadTodayMenu()">
         <i class="fas fa-sync-alt" style="margin-right: 6px;"></i> Refresh Menu
       </button>
@@ -93,21 +103,19 @@
     <footer class="app-footer">
       An initiative of <span class="valiass-link" onclick="UI.showContact()">@valiass</span> team
     </footer>
-
   </main>
 
-  <!-- TOAST CONTAINER -->
   <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
-  <!-- ==================== FIREBASE SDKs ==================== -->
+  <!-- FIREBASE -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 
-  <!-- ==================== APP SCRIPTS ==================== -->
+  <!-- APP -->
   <script src="js/config.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/auth.js"></script>
-  <script src="js/pages/cook.js?v=2"></script>
+  <script src="js/pages/cook.js?v=6"></script>
 </body>
 </html>
