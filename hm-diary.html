@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="te">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#1B5E20" />
+  <title>E-Diary — MPMP School - Dagguluru</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css?v=20" />
+</head>
+<body class="page-diary">
+
+  <div id="splash" class="splash-screen">
+    <div class="splash-logo" style="font-size:4rem;">📖</div>
+    <h1 class="splash-title">E-Diary</h1>
+    <p class="splash-sub">MPMP School - Dagguluru</p>
+    <div class="splash-loader"></div>
+  </div>
+
+  <main id="diaryApp" class="hm-app hidden">
+    <header class="app-header">
+      <h1 id="pageTitle" class="app-title">E-Diary</h1>
+      <button id="homeBtn" class="icon-btn" onclick="window.location.href='hm-dashboard.html'" aria-label="Home" title="Dashboard">
+        <i class="fas fa-home"></i>
+      </button>
+      <button id="logoutBtn" class="icon-btn logout-btn" aria-label="Logout" title="లాగౌట్">
+        <i class="fas fa-sign-out-alt"></i>
+      </button>
+      <button id="themeBtn" class="icon-btn theme-btn" aria-label="Theme" title="థీమ్">🌙</button>
+    </header>
+
+    <section id="screenList" class="screen">
+      <!-- Class selector -->
+      <div class="card" style="padding: var(--space-sm);">
+        <div class="field" style="margin: 0;">
+          <select id="classSelect" onchange="loadDiaries()" style="height: 44px;">
+            <option value="">-- Class ఎంచుకోండి --</option>
+            <option value="Class 1">Class 1</option>
+            <option value="Class 2">Class 2</option>
+            <option value="Class 3">Class 3</option>
+            <option value="Class 4">Class 4</option>
+            <option value="Class 5">Class 5</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Filter tabs -->
+      <div class="card" style="padding: var(--space-sm);">
+        <div style="display: flex; gap: var(--space-xs); overflow-x: auto;">
+          <button id="filterPending" class="btn btn-primary" onclick="switchFilter('pending')" style="flex: 1; padding: 8px; font-size: 0.75rem; white-space: nowrap;">⏳ Pending</button>
+          <button id="filterApproved" class="btn btn-outline" onclick="switchFilter('approved')" style="flex: 1; padding: 8px; font-size: 0.75rem; white-space: nowrap;">✅ Approved</button>
+          <button id="filterRejected" class="btn btn-outline" onclick="switchFilter('rejected')" style="flex: 1; padding: 8px; font-size: 0.75rem; white-space: nowrap;">❌ Rejected</button>
+          <button id="filterAll" class="btn btn-outline" onclick="switchFilter('all')" style="flex: 1; padding: 8px; font-size: 0.75rem; white-space: nowrap;">📋 All</button>
+        </div>
+      </div>
+
+      <div id="diariesList">
+        <p style="color: var(--text-muted); text-align: center; padding: var(--space-md);">Class ఎంచుకోండి...</p>
+      </div>
+    </section>
+
+    <!-- WhatsApp Modal -->
+    <div id="waModal" class="modal-overlay" onclick="if(event.target===this)closeWAModal()">
+      <div class="modal-content" style="max-width: 420px;">
+        <h3 style="color: var(--primary); margin-bottom: var(--space-sm);">💬 WhatsApp Message</h3>
+        <div id="waMessage" style="background: var(--bg-color); padding: var(--space-md); border-radius: var(--radius-md); font-size: 0.85rem; white-space: pre-wrap; max-height: 50vh; overflow-y: auto; margin-bottom: var(--space-md); border: 1px solid var(--border-color);"></div>
+        <div style="display: flex; gap: var(--space-sm);">
+          <button class="btn btn-outline" onclick="closeWAModal()" style="flex: 1;">Cancel</button>
+          <button class="btn valiass-wa-btn" onclick="shareWA()" style="flex: 1; background: #25D366; color: #fff;">
+            <i class="fab fa-whatsapp"></i> Share
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Poster Modal -->
+    <div id="posterModal" class="modal-overlay" onclick="if(event.target===this)closePosterModal()">
+      <div class="modal-content" style="max-width: 92vw; padding: var(--space-md);">
+        <h3 style="color: var(--primary); margin-bottom: var(--space-sm); text-align: center;">🎨 Poster Preview</h3>
+        <div style="max-height: 60vh; overflow-y: auto; text-align: center;">
+          <canvas id="posterCanvas" style="max-width: 100%; border-radius: var(--radius-md); box-shadow: var(--shadow-lg);"></canvas>
+        </div>
+        <div style="display: flex; gap: var(--space-sm); margin-top: var(--space-md);">
+          <button class="btn btn-outline" onclick="closePosterModal()" style="flex: 1;">Cancel</button>
+          <button class="btn btn-primary" onclick="downloadPoster()" style="flex: 1;">
+            <i class="fas fa-download"></i> Download
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <footer class="app-footer">
+      An initiative of <span class="valiass-link" onclick="UI.showContact()">@valiass</span> team
+    </footer>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+
+  <script src="js/config.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/pages/hm-diary.js?v=20"></script>
+</body>
+</html>
