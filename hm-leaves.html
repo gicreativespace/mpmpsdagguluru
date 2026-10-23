@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="te">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#1B5E20" />
+  <title>Leave Requests — MPMP School - Dagguluru</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css?v=19" />
+</head>
+<body class="page-leaves">
+
+  <div id="splash" class="splash-screen">
+    <div class="splash-logo" style="font-size:4rem;">📅</div>
+    <h1 class="splash-title">Leave Requests</h1>
+    <p class="splash-sub">MPMP School - Dagguluru</p>
+    <div class="splash-loader"></div>
+  </div>
+
+  <main id="leavesApp" class="hm-app hidden">
+    <header class="app-header">
+      <h1 id="pageTitle" class="app-title">Leave Requests</h1>
+      <button id="homeBtn" class="icon-btn" onclick="window.location.href='hm-dashboard.html'" aria-label="Home" title="Dashboard">
+        <i class="fas fa-home"></i>
+      </button>
+      <button id="logoutBtn" class="icon-btn logout-btn" aria-label="Logout" title="లాగౌట్">
+        <i class="fas fa-sign-out-alt"></i>
+      </button>
+      <button id="themeBtn" class="icon-btn theme-btn" aria-label="Theme" title="థీమ్">🌙</button>
+    </header>
+
+    <section id="screenDashboard" class="screen">
+      <!-- Tabs -->
+      <div class="card" style="padding: var(--space-sm);">
+        <div style="display: flex; gap: var(--space-xs);">
+          <button id="tabTeacher" class="btn btn-primary" onclick="switchTab('teacher')" style="flex: 1; padding: 12px; font-size: 0.9rem;">
+            👨‍🏫 Teacher Leaves
+          </button>
+          <button id="tabStudent" class="btn btn-outline" onclick="switchTab('student')" style="flex: 1; padding: 12px; font-size: 0.9rem;">
+            👶 Student Leaves
+          </button>
+        </div>
+      </div>
+
+      <!-- Filter -->
+      <div class="card" style="padding: var(--space-sm);">
+        <div style="display: flex; gap: var(--space-xs);">
+          <button id="filterAll" class="btn btn-primary" onclick="switchFilter('all')" style="flex: 1; padding: 8px; font-size: 0.8rem;">
+            All
+          </button>
+          <button id="filterPending" class="btn btn-outline" onclick="switchFilter('pending')" style="flex: 1; padding: 8px; font-size: 0.8rem;">
+            ⏳ Pending
+          </button>
+        </div>
+      </div>
+
+      <!-- List -->
+      <div id="leavesList">
+        <p style="color: var(--text-muted); text-align: center; padding: var(--space-md);">లోడ్ అవుతోంది...</p>
+      </div>
+    </section>
+
+    <footer class="app-footer">
+      An initiative of <span class="valiass-link" onclick="UI.showContact()">@valiass</span> team
+    </footer>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+
+  <script src="js/config.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/pages/hm-leaves.js?v=19"></script>
+</body>
+</html>
