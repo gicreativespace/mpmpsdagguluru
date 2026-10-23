@@ -1,5 +1,5 @@
 // sw.js — Digital Manabadi Service Worker (Auto Update)
-const CACHE_NAME = 'mpmp-cache-v14'; // ⚠️ ప్రతిసారి కోడ్ మార్చినప్పుడు ఈ నంబర్ పెంచండి (v6, v7...)
+const CACHE_NAME = 'mpmp-cache-v16'; // ⚠️ ప్రతిసారి కోడ్ మార్చినప్పుడు ఈ నంబర్ పెంచండి (v6, v7...)
 
 const urlsToCache = [
   './',
