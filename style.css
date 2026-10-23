@@ -772,3 +772,37 @@ input:disabled + .slider { opacity: 0.5; cursor: not-allowed; }
 [data-theme="dark"] .field select {
   background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%234CAF50%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
 }
+// Test: Section card + Status badge
+document.body.insertAdjacentHTML('beforeend', `
+  <div class="section-card" style="max-width:400px;margin:20px auto;">
+    <div class="section-card-icon">📚</div>
+    <div class="section-card-body">
+      <div class="section-card-title">Test Section Card</div>
+      <div class="section-card-sub">This is a test card</div>
+    </div>
+    <div class="section-card-arrow">›</div>
+  </div>
+  <div style="text-align:center;margin:10px;">
+    <span class="status-badge status-approved">Approved</span>
+    <span class="status-badge status-pending">Pending</span>
+    <span class="status-badge status-rejected">Rejected</span>
+    <span class="status-badge status-leave">Leave</span>
+  </div>
+`);
+
+// Test: Valiass popup
+document.body.insertAdjacentHTML('beforeend', `
+  <div class="valiass-popup" id="testValiassPopup">
+    <div class="valiass-popup-content" style="position:relative;">
+      <button class="valiass-close-btn" onclick="document.getElementById('testValiassPopup').classList.remove('active')">×</button>
+      <div class="valiass-popup-icon">💬</div>
+      <div class="valiass-popup-title">Contact Valiass</div>
+      <div class="valiass-popup-sub">Reach out to our team</div>
+      <div class="valiass-popup-actions">
+        <button class="valiass-action-btn valiass-call-btn">📞 Call</button>
+        <button class="valiass-action-btn valiass-wa-btn">💬 WhatsApp</button>
+      </div>
+    </div>
+  </div>
+`);
+setTimeout(() => document.getElementById('testValiassPopup').classList.add('active'), 500);
