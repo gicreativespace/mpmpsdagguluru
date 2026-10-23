@@ -1,12 +1,11 @@
 // js/pages/hm-classrooms.js
 
 let currentScreen = 'list';
-let editingClassId = null;
-let editingStudentId = null;
 let currentClassroomId = null;
 let currentClassroomName = '';
 let allClassrooms = [];
 let currentStudents = [];
+let editingStudentId = null;
 
 // =====================================================
 // INIT
@@ -41,7 +40,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 // =====================================================
 function showScreen(name) {
     currentScreen = name;
-    ['list', 'classForm', 'students', 'studentForm'].forEach(s => {
+    ['list', 'createClass', 'students', 'editStudent'].forEach(s => {
         const el = document.getElementById('screen' + capitalize(s));
         if (el) el.classList.add('hidden');
     });
@@ -52,9 +51,9 @@ function showScreen(name) {
     if (title) {
         const titles = {
             list: 'Classrooms',
-            classForm: 'Add Class',
+            createClass: 'Add Class',
             students: currentClassroomName || 'Students',
-            studentForm: 'Add Student'
+            editStudent: 'Edit Student'
         };
         title.textContent = titles[name] || 'Classrooms';
     }
@@ -84,43 +83,26 @@ function bindEvents() {
         });
     }
 
-    // Class form
-    const classForm = document.getElementById('classForm');
-    if (classForm) {
-        classForm.addEventListener('submit', (e) => {
+    const createClassForm = document.getElementById('createClassForm');
+    if (createClassForm) {
+        createClassForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            handleSaveClass();
+            handleCreateClass();
         });
     }
 
-    // Student form
-    const studentForm = document.getElementById('studentForm');
-    if (studentForm) {
-        studentForm.addEventListener('submit', (e) => {
+    const editStudentForm = document.getElementById('editStudentForm');
+    if (editStudentForm) {
+        editStudentForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            handleSaveStudent();
+            handleSaveStudentDetails();
         });
     }
 
-    // Numeric inputs
-    const rollInput = document.getElementById('studentRollNumber');
-    if (rollInput) {
-        rollInput.addEventListener('input', () => {
-            rollInput.value = rollInput.value.replace(/\D/g, '').slice(0, 10);
-        });
-    }
-
-    const dobInput = document.getElementById('studentDob');
+    const dobInput = document.getElementById('editStudentDob');
     if (dobInput) {
         dobInput.addEventListener('input', () => {
             dobInput.value = dobInput.value.replace(/\D/g, '').slice(0, 6);
-        });
-    }
-
-    const parentPhoneInput = document.getElementById('studentParentPhone');
-    if (parentPhoneInput) {
-        parentPhoneInput.addEventListener('input', () => {
-            parentPhoneInput.value = parentPhoneInput.value.replace(/\D/g, '').slice(0, 10);
         });
     }
 }
@@ -143,7 +125,12 @@ async function loadClassrooms() {
             allClassrooms.push({ id: doc.id, ...doc.data() });
         });
 
-        allClassrooms.sort((a, b) => (a.className || '').localeCompare(b.className || '', undefined, { numeric: true }));
+        // Class 1, Class 2 లాగా సార్ట్ చేయి
+        allClassrooms.sort((a, b) => {
+            const an = parseInt((a.className || '').replace(/\D/g, '')) || 0;
+            const bn = parseInt((b.className || '').replace(/\D/g, '')) || 0;
+            return an - bn;
+        });
 
         renderClassrooms();
     } catch (error) {
@@ -159,104 +146,100 @@ function renderClassrooms() {
     const container = document.getElementById('classroomsList');
     if (!container) return;
 
+    let html = `
+        <button class="btn btn-primary btn-block" onclick="showScreen('createClass')" style="margin-bottom: var(--space-lg);">
+            <i class="fas fa-plus" style="margin-right: 6px;"></i> కొత్త Class క్రియేట్ చేయండి
+        </button>
+    `;
+
     if (allClassrooms.length === 0) {
-        container.innerHTML = `
+        html += `
             <div style="text-align: center; padding: var(--space-xl); color: var(--text-muted);">
                 <i class="fas fa-school" style="font-size: 3rem; opacity: 0.3; margin-bottom: var(--space-md);"></i>
                 <p>ఇంకా Classrooms లేవు</p>
-                <p style="font-size: 0.85rem; margin-top: 4px;">కొత్త Class యాడ్ చేయండి</p>
             </div>
         `;
+        container.innerHTML = html;
         return;
     }
 
-    container.innerHTML = allClassrooms.map(cls => `
+    html += allClassrooms.map(cls => `
         <div class="card" style="padding: var(--space-md); margin-bottom: var(--space-sm); cursor: pointer;" onclick="openClassroom('${cls.id}', '${escapeHtml(cls.className || '')}')">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div style="flex: 1;">
                     <h4 style="font-size: 1.1rem; margin-bottom: 4px;">🏫 ${escapeHtml(cls.className || '—')}</h4>
                     <p style="font-size: 0.8rem; color: var(--text-muted);">
-                        <i class="fas fa-users"></i> ${cls.studentCount || 0} విద్యార్థులు
+                        <i class="fas fa-users"></i> మొత్తం విద్యార్థులు: ${cls.classStrength || 0}
                     </p>
                 </div>
                 <div style="display: flex; gap: 4px;">
-                    <button class="icon-btn" onclick="event.stopPropagation(); editClass('${cls.id}')" title="Edit" style="width: 36px; height: 36px; background: var(--primary); color: #fff;">
-                        <i class="fas fa-edit" style="font-size: 0.9rem;"></i>
-                    </button>
-                    <button class="icon-btn" onclick="event.stopPropagation(); deleteClass('${cls.id}', '${escapeHtml(cls.className || '')}')" title="Delete" style="width: 36px; height: 36px; background: var(--danger); color: #fff;">
+                    <button class="icon-btn" onclick="event.stopPropagation(); deleteClass('${cls.id}', '${escapeHtml(cls.className || '')}')" title="Delete Class" style="width: 36px; height: 36px; background: var(--danger); color: #fff;">
                         <i class="fas fa-trash" style="font-size: 0.9rem;"></i>
                     </button>
                 </div>
             </div>
         </div>
     `).join('');
+
+    container.innerHTML = html;
 }
 
 // =====================================================
-// ADD CLASS SCREEN
+// CREATE CLASS + AUTO ROLL NUMBERS
 // =====================================================
-function showAddClassScreen() {
-    editingClassId = null;
-    document.getElementById('classFormTitle').textContent = '➕ కొత్త Class';
-    document.getElementById('classFormDesc').textContent = 'Class వివరాలు నింపండి';
-    document.getElementById('classForm').reset();
-    document.getElementById('classError').classList.add('hidden');
-    showScreen('classForm');
-}
+async function handleCreateClass() {
+    const className = document.getElementById('newClassName').value;
+    const strength = parseInt(document.getElementById('newClassStrength').value);
+    const errorEl = document.getElementById('createClassError');
+    const btn = document.getElementById('createClassBtn');
 
-// =====================================================
-// EDIT CLASS
-// =====================================================
-function editClass(classId) {
-    const cls = allClassrooms.find(c => c.id === classId);
-    if (!cls) return;
+    if (!className) return showFormError(errorEl, 'Class ఎంచుకోండి.');
+    if (!strength || strength < 1 || strength > 100) return showFormError(errorEl, '1 నుంచి 100 మధ్య Strength ఇవ్వండి.');
 
-    editingClassId = classId;
-    document.getElementById('classFormTitle').textContent = '✏️ Edit Class';
-    document.getElementById('classFormDesc').textContent = 'Class పేరు మార్చండి';
-    document.getElementById('className').value = cls.className || '';
-    document.getElementById('classError').classList.add('hidden');
-    showScreen('classForm');
-}
-
-// =====================================================
-// SAVE CLASS
-// =====================================================
-async function handleSaveClass() {
-    const className = document.getElementById('className').value.trim();
-    const errorEl = document.getElementById('classError');
-    const btn = document.getElementById('classSubmitBtn');
-
-    if (!className) return showFormError(errorEl, 'Class పేరు నింపండి.');
+    // ఈ క్లాస్ ఇప్పటికే ఉందా చెక్ చేయి
+    const exists = allClassrooms.find(c => c.className === className);
+    if (exists) {
+        return showFormError(errorEl, 'ఈ Class ఇప్పటికే క్రియేట్ చేయబడింది.');
+    }
 
     btn.disabled = true;
-    btn.innerHTML = 'సేవ్ అవుతోంది...';
+    btn.innerHTML = 'క్రియేట్ అవుతోంది...';
     hideFormError(errorEl);
 
     try {
-        if (editingClassId) {
-            await db.collection('classrooms').doc(editingClassId).update({
-                className: className,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            UI.toast('✅ Class అప్‌డేట్ అయ్యింది!', 'success');
-        } else {
-            await db.collection('classrooms').add({
-                className: className,
-                studentCount: 0,
+        // 1. Class క్రియేట్ చేయి
+        const classRef = await db.collection('classrooms').add({
+            className: className,
+            classStrength: strength,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        // 2. ఆటోమేటిక్ రోల్ నంబర్లు క్రియేట్ చేయి
+        const batch = db.batch();
+        for (let i = 1; i <= strength; i++) {
+            const rollNum = i.toString().padStart(2, '0'); // 01, 02... 30
+            const studentRef = db.collection('classrooms').doc(classRef.id).collection('students').doc();
+            batch.set(studentRef, {
+                rollNumber: rollNum,
+                name: '',
+                dob: '',
+                isFilled: false,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
-            UI.toast('✅ Class విజయవంతంగా యాడ్ అయ్యింది!', 'success');
         }
+        await batch.commit();
 
+        UI.toast(`✅ ${className} క్రియేట్ అయ్యింది (${strength} రోల్ నంబర్లు)!`, 'success');
+        
+        document.getElementById('createClassForm').reset();
         await loadClassrooms();
         showScreen('list');
     } catch (error) {
-        console.error('Save class error:', error);
-        showFormError(errorEl, 'సేవ్ విఫలమైంది.');
+        console.error('Create class error:', error);
+        showFormError(errorEl, 'క్రియేషన్ విఫలమైంది. మళ్లీ ప్రయత్నించండి.');
     } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-save" style="margin-right: 8px;"></i> Save Class';
+        btn.innerHTML = '<i class="fas fa-save" style="margin-right: 8px;"></i> Class క్రియేట్ చేయండి';
     }
 }
 
@@ -264,15 +247,13 @@ async function handleSaveClass() {
 // DELETE CLASS
 // =====================================================
 async function deleteClass(classId, className) {
-    if (!confirm(`⚠️ "${className}" Class ని డిలీట్ చేయాలా? ఇందులోని విద్యార్థులందరూ తీసేయబడతారు.`)) return;
+    if (!confirm(`⚠️ "${className}" Class ని పూర్తిగా డిలీట్ చేయాలా? ఇందులోని విద్యార్థులందరూ తీసేయబడతారు.`)) return;
 
     try {
         const studentsSnap = await db.collection('classrooms').doc(classId).collection('students').get();
         const batch = db.batch();
         studentsSnap.forEach(doc => batch.delete(doc.ref));
-
         batch.delete(db.collection('classrooms').doc(classId));
-
         await batch.commit();
 
         UI.toast('🗑️ Class మరియు విద్యార్థులు డిలీట్ అయ్యారు!', 'success');
@@ -291,7 +272,7 @@ async function openClassroom(classId, className) {
     currentClassroomName = className;
 
     document.getElementById('studentsTitle').textContent = `👨‍🎓 ${className} — Students`;
-    document.getElementById('studentsClassDesc').textContent = 'విద్యార్థుల జాబితా';
+    document.getElementById('studentsClassDesc').textContent = 'రోల్ నంబర్ ప్రకారం వివరాలు నింపండి';
 
     showScreen('students');
     await loadStudents();
@@ -315,9 +296,7 @@ async function loadStudents() {
         });
 
         currentStudents.sort((a, b) => {
-            const an = parseInt(a.rollNumber) || 0;
-            const bn = parseInt(b.rollNumber) || 0;
-            return an - bn;
+            return parseInt(a.rollNumber) - parseInt(b.rollNumber);
         });
 
         renderStudents();
@@ -328,7 +307,7 @@ async function loadStudents() {
 }
 
 // =====================================================
-// RENDER STUDENTS
+// RENDER STUDENTS (Individual Edit/Delete)
 // =====================================================
 function renderStudents() {
     const container = document.getElementById('studentsList');
@@ -339,81 +318,72 @@ function renderStudents() {
             <div style="text-align: center; padding: var(--space-xl); color: var(--text-muted);">
                 <i class="fas fa-user-graduate" style="font-size: 3rem; opacity: 0.3; margin-bottom: var(--space-md);"></i>
                 <p>ఇంకా విద్యార్థులు లేరు</p>
-                <p style="font-size: 0.85rem; margin-top: 4px;">కొత్త Student యాడ్ చేయండి</p>
             </div>
         `;
         return;
     }
 
-    container.innerHTML = currentStudents.map(student => `
-        <div class="card" style="padding: var(--space-md); margin-bottom: var(--space-sm);">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                <div style="flex: 1;">
-                    <div style="display: flex; align-items: center; gap: var(--space-sm); margin-bottom: 4px;">
-                        <span style="background: var(--primary); color: #fff; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 700;">
-                            ${escapeHtml(student.rollNumber || '—')}
-                        </span>
-                        <h4 style="font-size: 1rem;">${escapeHtml(student.name || '—')}</h4>
+    container.innerHTML = currentStudents.map(student => {
+        const isFilled = student.isFilled && student.name;
+        const statusColor = isFilled ? 'var(--success)' : '#F9A825';
+        
+        return `
+        <div class="card" style="padding: var(--space-md); margin-bottom: var(--space-sm); border-left: 4px solid ${statusColor};">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: var(--space-md); flex: 1;">
+                    <div style="background: var(--primary); color: #fff; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1rem;">
+                        ${escapeHtml(student.rollNumber || '—')}
                     </div>
-                    ${student.dob ? `<p style="font-size: 0.75rem; color: var(--text-muted);">📅 ${escapeHtml(student.dob)}</p>` : ''}
-                    ${student.parentPhone ? `<p style="font-size: 0.75rem; color: var(--text-muted);">📞 ${escapeHtml(student.parentPhone)}</p>` : ''}
+                    <div style="flex: 1;">
+                        ${isFilled 
+                            ? `<h4 style="font-size: 1rem; margin-bottom: 2px;">${escapeHtml(student.name)}</h4>
+                               <p style="font-size: 0.75rem; color: var(--text-muted);">📅 ${escapeHtml(student.dob || '—')}</p>`
+                            : `<p style="font-size: 0.9rem; color: var(--text-muted); font-style: italic;">వివరాలు నింపలేదు</p>
+                               <p style="font-size: 0.7rem; color: #F9A825; font-weight: 600;">⚠️ Click to add details</p>`
+                        }
+                    </div>
                 </div>
                 <div style="display: flex; gap: 4px;">
-                    <button class="icon-btn" onclick="editStudent('${student.id}')" title="Edit" style="width: 32px; height: 32px; background: var(--primary); color: #fff;">
-                        <i class="fas fa-edit" style="font-size: 0.8rem;"></i>
+                    <button class="icon-btn" onclick="editStudentDetails('${student.id}')" title="${isFilled ? 'Edit' : 'Add Details'}" style="width: 36px; height: 36px; background: var(--primary); color: #fff;">
+                        <i class="fas fa-${isFilled ? 'edit' : 'user-plus'}" style="font-size: 0.9rem;"></i>
                     </button>
-                    <button class="icon-btn" onclick="deleteStudent('${student.id}', '${escapeHtml(student.name || '')}')" title="Delete" style="width: 32px; height: 32px; background: var(--danger); color: #fff;">
-                        <i class="fas fa-trash" style="font-size: 0.8rem;"></i>
+                    <button class="icon-btn" onclick="deleteIndividualStudent('${student.id}', '${escapeHtml(student.rollNumber || '')}')" title="Delete" style="width: 36px; height: 36px; background: var(--danger); color: #fff;">
+                        <i class="fas fa-trash" style="font-size: 0.9rem;"></i>
                     </button>
                 </div>
             </div>
         </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 // =====================================================
-// ADD STUDENT SCREEN
+// EDIT STUDENT DETAILS (Name, DOB)
 // =====================================================
-function showAddStudentScreen() {
-    editingStudentId = null;
-    document.getElementById('studentFormTitle').textContent = '➕ కొత్త Student';
-    document.getElementById('studentFormDesc').textContent = 'Student వివరాలు నింపండి';
-    document.getElementById('studentForm').reset();
-    document.getElementById('studentError').classList.add('hidden');
-    showScreen('studentForm');
-}
-
-// =====================================================
-// EDIT STUDENT
-// =====================================================
-function editStudent(studentId) {
+function editStudentDetails(studentId) {
     const student = currentStudents.find(s => s.id === studentId);
     if (!student) return;
 
     editingStudentId = studentId;
-    document.getElementById('studentFormTitle').textContent = '✏️ Edit Student';
-    document.getElementById('studentFormDesc').textContent = 'Student వివరాలు మార్చండి';
-    document.getElementById('studentRollNumber').value = student.rollNumber || '';
-    document.getElementById('studentName').value = student.name || '';
-    document.getElementById('studentDob').value = student.dob || '';
-    document.getElementById('studentParentPhone').value = student.parentPhone || '';
-    document.getElementById('studentError').classList.add('hidden');
-    showScreen('studentForm');
+    document.getElementById('editStudentTitle').textContent = student.isFilled ? '✏️ Edit Details' : '➕ Add Details';
+    document.getElementById('editStudentDesc').textContent = `Roll Number: ${student.rollNumber}`;
+    document.getElementById('editStudentRoll').value = student.rollNumber || '';
+    document.getElementById('editStudentName').value = student.name || '';
+    document.getElementById('editStudentDob').value = student.dob || '';
+    document.getElementById('editStudentError').classList.add('hidden');
+    showScreen('editStudent');
 }
 
 // =====================================================
-// SAVE STUDENT
+// SAVE STUDENT DETAILS
 // =====================================================
-async function handleSaveStudent() {
-    const rollNumber = document.getElementById('studentRollNumber').value.trim();
-    const name = document.getElementById('studentName').value.trim();
-    const dob = document.getElementById('studentDob').value.trim();
-    const parentPhone = document.getElementById('studentParentPhone').value.trim();
-    const errorEl = document.getElementById('studentError');
-    const btn = document.getElementById('studentSubmitBtn');
+async function handleSaveStudentDetails() {
+    const name = document.getElementById('editStudentName').value.trim();
+    const dob = document.getElementById('editStudentDob').value.trim();
+    const errorEl = document.getElementById('editStudentError');
+    const btn = document.getElementById('editStudentBtn');
 
-    if (!rollNumber) return showFormError(errorEl, 'Roll Number నింపండి.');
-    if (!name) return showFormError(errorEl, 'Student పేరు నింపండి.');
+    if (!name) return showFormError(errorEl, 'పేరు నింపండి.');
     if (!/^\d{6}$/.test(dob)) return showFormError(errorEl, 'DOB ddmmyy ఫార్మాట్ లో 6 అంకెలు ఉండాలి.');
 
     btn.disabled = true;
@@ -421,62 +391,35 @@ async function handleSaveStudent() {
     hideFormError(errorEl);
 
     try {
-        const studentData = {
-            rollNumber: rollNumber,
+        await db.collection('classrooms').doc(currentClassroomId).collection('students').doc(editingStudentId).update({
             name: name,
             dob: dob,
-            parentPhone: parentPhone || null,
+            isFilled: true,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        };
+        });
 
-        if (editingStudentId) {
-            await db.collection('classrooms').doc(currentClassroomId).collection('students').doc(editingStudentId).update(studentData);
-            UI.toast('✅ Student వివరాలు అప్‌డేట్ అయ్యాయి!', 'success');
-        } else {
-            studentData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-            await db.collection('classrooms').doc(currentClassroomId).collection('students').add(studentData);
-            UI.toast('✅ Student విజయవంతంగా యాడ్ అయ్యారు!', 'success');
-
-            // Update studentCount
-            const classDoc = await db.collection('classrooms').doc(currentClassroomId).get();
-            const currentCount = classDoc.exists ? (classDoc.data().studentCount || 0) : 0;
-            await db.collection('classrooms').doc(currentClassroomId).update({
-                studentCount: currentCount + 1
-            });
-        }
-
+        UI.toast('✅ విద్యార్థి వివరాలు సేవ్ అయ్యాయి!', 'success');
         await loadStudents();
-        await loadClassrooms();
         showScreen('students');
     } catch (error) {
         console.error('Save student error:', error);
         showFormError(errorEl, 'సేవ్ విఫలమైంది.');
     } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-save" style="margin-right: 8px;"></i> Save Student';
+        btn.innerHTML = '<i class="fas fa-save" style="margin-right: 8px;"></i> Save';
     }
 }
 
 // =====================================================
-// DELETE STUDENT
+// DELETE INDIVIDUAL STUDENT
 // =====================================================
-async function deleteStudent(studentId, studentName) {
-    if (!confirm(`⚠️ "${studentName}" Student ని డిలీట్ చేయాలా?`)) return;
+async function deleteIndividualStudent(studentId, rollNumber) {
+    if (!confirm(`⚠️ Roll Number ${rollNumber} ని డిలీట్ చేయాలా?`)) return;
 
     try {
         await db.collection('classrooms').doc(currentClassroomId).collection('students').doc(studentId).delete();
-
-        const classDoc = await db.collection('classrooms').doc(currentClassroomId).get();
-        const currentCount = classDoc.exists ? (classDoc.data().studentCount || 0) : 0;
-        if (currentCount > 0) {
-            await db.collection('classrooms').doc(currentClassroomId).update({
-                studentCount: currentCount - 1
-            });
-        }
-
-        UI.toast('🗑️ Student డిలీట్ అయ్యారు!', 'success');
+        UI.toast('🗑️ విద్యార్థి డిలీట్ అయ్యారు!', 'success');
         await loadStudents();
-        await loadClassrooms();
     } catch (error) {
         console.error('Delete student error:', error);
         UI.toast('❌ డిలీట్ విఫలమైంది.', 'error');
