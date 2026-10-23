@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="te">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#1B5E20" />
+  <title>Attendance Approve — MPMP School</title>
+  <link rel="manifest" href="manifest.json" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css?v=23" />
+</head>
+<body class="page-attendance">
+
+  <div id="splash" class="splash-screen">
+    <div class="splash-logo" style="font-size:4rem;">✅</div>
+    <h1 class="splash-title">Attendance Approve</h1>
+    <p class="splash-sub">MPMP School - Dagguluru</p>
+    <div class="splash-loader"></div>
+  </div>
+
+  <main id="attApp" class="hm-app hidden">
+    <header class="app-header">
+      <h1 id="pageTitle" class="app-title">Attendance Approve</h1>
+      <button id="homeBtn" class="icon-btn" onclick="window.location.href='hm-dashboard.html'" aria-label="Home" title="Dashboard">
+        <i class="fas fa-home"></i>
+      </button>
+      <button id="logoutBtn" class="icon-btn logout-btn" aria-label="Logout" title="లాగౌట్">
+        <i class="fas fa-sign-out-alt"></i>
+      </button>
+      <button id="themeBtn" class="icon-btn theme-btn" aria-label="Theme" title="థీమ్">🌙</button>
+    </header>
+
+    <section class="screen">
+      <!-- Class Select -->
+      <div class="card" style="padding: var(--space-sm);">
+        <div class="field" style="margin: 0;">
+          <select id="classSelect" onchange="loadAttendance()" style="height: 44px;">
+            <option value="">-- Class ఎంచుకోండి --</option>
+            <option value="Class 1">Class 1</option>
+            <option value="Class 2">Class 2</option>
+            <option value="Class 3">Class 3</option>
+            <option value="Class 4">Class 4</option>
+            <option value="Class 5">Class 5</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="attList">
+        <p style="color: var(--text-muted); text-align: center; padding: var(--space-md);">Class ఎంచుకోండి...</p>
+      </div>
+    </section>
+
+    <footer class="app-footer">
+      An initiative of <span class="valiass-link" onclick="UI.showContact()">@valiass</span> team
+    </footer>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/pages/hm-attendance.js?v=23"></script>
+</body>
+</html>
