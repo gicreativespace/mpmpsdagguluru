@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="te">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#1B5E20" />
+  <title>Staff Management — MPMP School - Dagguluru</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css?v=13" />
+</head>
+<body class="page-staff">
+
+  <div id="splash" class="splash-screen">
+    <div class="splash-logo" style="font-size:4rem;">👥</div>
+    <h1 class="splash-title">Staff Management</h1>
+    <p class="splash-sub">MPMP School - Dagguluru</p>
+    <div class="splash-loader"></div>
+  </div>
+
+  <main id="staffApp" class="hm-app hidden">
+    <header class="app-header">
+      <h1 id="pageTitle" class="app-title">Staff Management</h1>
+      <button id="homeBtn" class="icon-btn hidden" onclick="window.location.href='hm-dashboard.html'" aria-label="Home" title="Dashboard">
+        <i class="fas fa-home"></i>
+      </button>
+      <button id="logoutBtn" class="icon-btn logout-btn" aria-label="Logout" title="లాగౌట్">
+        <i class="fas fa-sign-out-alt"></i>
+      </button>
+      <button id="themeBtn" class="icon-btn theme-btn" aria-label="Theme" title="థీమ్">🌙</button>
+    </header>
+
+    <!-- SCREEN 1: STAFF LIST -->
+    <section id="screenList" class="screen hidden">
+      <div class="card">
+        <h2 class="card-title">👥 Staff List</h2>
+        <p class="card-desc">Teacher మరియు Cook వివరాలు</p>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm); margin-bottom: var(--space-lg);">
+          <button class="btn btn-primary" onclick="showAddScreen('teacher')" style="padding: 14px; font-size: 0.9rem;">
+            <i class="fas fa-plus" style="margin-right: 6px;"></i> Teacher
+          </button>
+          <button class="btn btn-primary" onclick="showAddScreen('cook')" style="padding: 14px; font-size: 0.9rem;">
+            <i class="fas fa-plus" style="margin-right: 6px;"></i> Cook
+          </button>
+        </div>
+
+        <h3 style="font-size: 1rem; color: var(--primary); margin-bottom: var(--space-sm);">
+          <i class="fas fa-chalkboard-teacher"></i> Teachers
+        </h3>
+        <div id="teachersList" style="margin-bottom: var(--space-lg);">
+          <p style="color: var(--text-muted); text-align: center; padding: var(--space-md);">లోడ్ అవుతోంది...</p>
+        </div>
+
+        <h3 style="font-size: 1rem; color: var(--primary); margin-bottom: var(--space-sm);">
+          <i class="fas fa-utensils"></i> Cooks
+        </h3>
+        <div id="cooksList">
+          <p style="color: var(--text-muted); text-align: center; padding: var(--space-md);">లోడ్ అవుతోంది...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SCREEN 2: ADD/EDIT STAFF -->
+    <section id="screenForm" class="screen hidden">
+      <div class="card">
+        <h2 class="card-title" id="formTitle">➕ Add Staff</h2>
+        <p class="card-desc" id="formDesc">వివరాలు నింపండి</p>
+
+        <form id="staffForm" class="form" novalidate>
+          <div class="field">
+            <label for="staffName">పేరు</label>
+            <input type="text" id="staffName" required autocomplete="off" placeholder="ఉదా: Ramesh Kumar" />
+          </div>
+
+          <div class="field">
+            <label for="staffPhone">ఫోన్ నంబర్ (Login ID)</label>
+            <input type="tel" id="staffPhone" maxlength="10" inputmode="numeric" required autocomplete="off" placeholder="ఉదా: 9876543210" />
+            <small class="field-hint">ఇదే వారి Login ID అవుతుంది.</small>
+          </div>
+
+          <div class="field">
+            <label for="staffDob">పుట్టిన తేదీ (ddmmyy)</label>
+            <input type="text" id="staffDob" maxlength="6" inputmode="numeric" required autocomplete="off" placeholder="ఉదా: 150190" />
+          </div>
+
+          <div id="teacherAssignmentsSection" style="display: none;">
+            <div class="field">
+              <label>Class & Subject అసైన్‌మెంట్ (మల్టిపుల్ ఎంచుకోవచ్చు)</label>
+              <div id="assignmentsContainer" style="max-height: 300px; overflow-y: auto; padding: 8px; background: var(--bg-color); border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+              </div>
+            </div>
+          </div>
+
+          <p id="staffError" class="form-error hidden" role="alert"></p>
+
+          <button type="submit" id="staffSubmitBtn" class="btn btn-primary btn-block">
+            <i class="fas fa-save" style="margin-right: 8px;"></i> Save
+          </button>
+        </form>
+
+        <button type="button" class="link-btn" onclick="showScreen('list')">
+          <i class="fas fa-arrow-left"></i> వెనక్కి
+        </button>
+      </div>
+    </section>
+
+    <footer class="app-footer">
+      An initiative of <span class="valiass-link" onclick="UI.showContact()">@valiass</span> team
+    </footer>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <!-- FIREBASE -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+
+  <!-- APP -->
+  <script src="js/config.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/pages/hm-staff.js?v=13"></script>
+</body>
+</html>
