@@ -77,16 +77,6 @@ function bindEvents() {
         });
     }
 
-    const backBtn = document.getElementById('backBtn');
-    if (backBtn) {
-        backBtn.addEventListener('click', () => {
-            if (currentScreen === 'list') window.location.href = 'hm-dashboard.html';
-            else if (currentScreen === 'classForm') showScreen('list');
-            else if (currentScreen === 'students') showScreen('list');
-            else if (currentScreen === 'studentForm') showScreen('students');
-        });
-    }
-
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
@@ -153,7 +143,6 @@ async function loadClassrooms() {
             allClassrooms.push({ id: doc.id, ...doc.data() });
         });
 
-        // Sort by className (natural)
         allClassrooms.sort((a, b) => (a.className || '').localeCompare(b.className || '', undefined, { numeric: true }));
 
         renderClassrooms();
@@ -278,12 +267,10 @@ async function deleteClass(classId, className) {
     if (!confirm(`⚠️ "${className}" Class ని డిలీట్ చేయాలా? ఇందులోని విద్యార్థులందరూ తీసేయబడతారు.`)) return;
 
     try {
-        // Delete all students in this class first
         const studentsSnap = await db.collection('classrooms').doc(classId).collection('students').get();
         const batch = db.batch();
         studentsSnap.forEach(doc => batch.delete(doc.ref));
 
-        // Delete the classroom itself
         batch.delete(db.collection('classrooms').doc(classId));
 
         await batch.commit();
@@ -327,7 +314,6 @@ async function loadStudents() {
             currentStudents.push({ id: doc.id, ...doc.data() });
         });
 
-        // Sort by rollNumber
         currentStudents.sort((a, b) => {
             const an = parseInt(a.rollNumber) || 0;
             const bn = parseInt(b.rollNumber) || 0;
@@ -428,6 +414,7 @@ async function handleSaveStudent() {
 
     if (!rollNumber) return showFormError(errorEl, 'Roll Number నింపండి.');
     if (!name) return showFormError(errorEl, 'Student పేరు నింపండి.');
+    if (!/^\d{6}$/.test(dob)) return showFormError(errorEl, 'DOB ddmmyy ఫార్మాట్ లో 6 అంకెలు ఉండాలి.');
 
     btn.disabled = true;
     btn.innerHTML = 'సేవ్ అవుతోంది...';
@@ -437,7 +424,7 @@ async function handleSaveStudent() {
         const studentData = {
             rollNumber: rollNumber,
             name: name,
-            dob: dob || null,
+            dob: dob,
             parentPhone: parentPhone || null,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
@@ -450,7 +437,7 @@ async function handleSaveStudent() {
             await db.collection('classrooms').doc(currentClassroomId).collection('students').add(studentData);
             UI.toast('✅ Student విజయవంతంగా యాడ్ అయ్యారు!', 'success');
 
-            // Update studentCount in classroom
+            // Update studentCount
             const classDoc = await db.collection('classrooms').doc(currentClassroomId).get();
             const currentCount = classDoc.exists ? (classDoc.data().studentCount || 0) : 0;
             await db.collection('classrooms').doc(currentClassroomId).update({
@@ -459,7 +446,7 @@ async function handleSaveStudent() {
         }
 
         await loadStudents();
-        await loadClassrooms(); // refresh count
+        await loadClassrooms();
         showScreen('students');
     } catch (error) {
         console.error('Save student error:', error);
@@ -479,7 +466,6 @@ async function deleteStudent(studentId, studentName) {
     try {
         await db.collection('classrooms').doc(currentClassroomId).collection('students').doc(studentId).delete();
 
-        // Update studentCount in classroom
         const classDoc = await db.collection('classrooms').doc(currentClassroomId).get();
         const currentCount = classDoc.exists ? (classDoc.data().studentCount || 0) : 0;
         if (currentCount > 0) {
