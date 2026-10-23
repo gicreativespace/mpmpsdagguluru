@@ -1,9 +1,10 @@
-// js/pages/teacher.js — v12.0 (Step 5.6 — Announcement)
+// js/pages/teacher.js — v12.0 (Step 5.7 — Submitted tabs)
 let currentScreen = 'login';
 let currentTeacher = null;
 let allTeacherDiaries = [];
 let currentStudentsForAttendance = [];
 let editingDiaryId = null;
+let currentSubmittedTab = 'diary';
 
 document.addEventListener('DOMContentLoaded', async () => {
     const savedTheme = localStorage.getItem('dm_theme') || 'light';
@@ -107,8 +108,11 @@ function showScreen(name) {
         const dateInput = document.getElementById('diaryDate');
         if (dateInput && !dateInput.value) dateInput.value = new Date().toISOString().split('T')[0];
     }
-    if (name === 'announcement') {
-        loadMyAnnouncements();
+    if (name === 'announcement') loadMyAnnouncements();
+    if (name === 'dashboard') {
+        loadMyDiaries();
+        loadMyAttendance();
+        loadMyLeaves();
     }
 }
 
@@ -166,12 +170,9 @@ async function handleTeacherLogin() {
     const pin = document.getElementById('teacherPin').value;
     const errorEl = document.getElementById('teacherLoginError');
     const btn = document.getElementById('teacherLoginBtn');
-
     if (!/^\d{10}$/.test(phone)) return showFormError(errorEl, '10 అంకెల ఫోన్ నింపండి.');
     if (!/^\d{4}$/.test(pin)) return showFormError(errorEl, 'PIN 4 అంకెలు.');
-
     btn.disabled = true; btn.textContent = 'లాగిన్...'; hideFormError(errorEl);
-
     try {
         const snapshot = await db.collection('users').where('phone', '==', phone).where('role', '==', 'teacher').limit(1).get();
         if (snapshot.empty) {
@@ -193,13 +194,11 @@ async function handleTeacherLogin() {
             btn.disabled = false; btn.textContent = 'లాగిన్';
             return showFormError(errorEl, '❌ తప్పు Master PIN.');
         }
-
         currentTeacher = {
             id: teacherDoc.id, name: teacherData.name || '',
             phone: teacherData.phone, assignments: teacherData.assignments || [], role: 'teacher'
         };
         localStorage.setItem('dm_teacher_session', JSON.stringify(currentTeacher));
-
         const savedName = localStorage.getItem('dm_teacher_name');
         if (!savedName) {
             UI.toast('✅ Login విజయవంతం!', 'success');
@@ -246,6 +245,8 @@ async function loadTeacherData() {
     populateClassDropdowns();
     renderAssignedClasses();
     await loadMyDiaries();
+    await loadMyAttendance();
+    await loadMyLeaves();
     await checkOnLeaveToggle();
     await loadMyAnnouncements();
 }
@@ -320,6 +321,44 @@ async function checkOnLeaveToggle() {
     } catch (err) { console.warn('Toggle check:', err); }
 }
 
+// =====================================================
+// SUBMITTED TABS (Step 5.7)
+// =====================================================
+function switchSubmittedTab(tab) {
+    currentSubmittedTab = tab;
+    const diaryList = document.getElementById('myDiariesList');
+    const attendanceList = document.getElementById('myAttendanceList');
+    const leavesList = document.getElementById('myLeavesList');
+    const tabDiary = document.getElementById('tabMyDiary');
+    const tabAttendance = document.getElementById('tabMyAttendance');
+    const tabLeave = document.getElementById('tabMyLeave');
+
+    if (tab === 'diary') {
+        diaryList.style.display = 'block';
+        attendanceList.style.display = 'none';
+        leavesList.style.display = 'none';
+        tabDiary.className = 'btn btn-primary';
+        tabAttendance.className = 'btn btn-outline';
+        tabLeave.className = 'btn btn-outline';
+    } else if (tab === 'attendance') {
+        diaryList.style.display = 'none';
+        attendanceList.style.display = 'block';
+        leavesList.style.display = 'none';
+        tabDiary.className = 'btn btn-outline';
+        tabAttendance.className = 'btn btn-primary';
+        tabLeave.className = 'btn btn-outline';
+        loadMyAttendance();
+    } else {
+        diaryList.style.display = 'none';
+        attendanceList.style.display = 'none';
+        leavesList.style.display = 'block';
+        tabDiary.className = 'btn btn-outline';
+        tabAttendance.className = 'btn btn-outline';
+        tabLeave.className = 'btn btn-primary';
+        loadMyLeaves();
+    }
+}
+
 function populateSubjectsForDiary() {
     const classSelect = document.getElementById('diaryClass');
     const container = document.getElementById('subjectsContainer');
@@ -348,6 +387,9 @@ function populateSubjectsForDiary() {
     });
 }
 
+// =====================================================
+// LOAD MY DIARIES
+// =====================================================
 async function loadMyDiaries() {
     if (!currentTeacher) return;
     const container = document.getElementById('myDiariesList');
@@ -357,13 +399,11 @@ async function loadMyDiaries() {
         allTeacherDiaries = [];
         snapshot.forEach(doc => allTeacherDiaries.push({ id: doc.id, ...doc.data() }));
         allTeacherDiaries.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-
         if (allTeacherDiaries.length === 0) {
             container.innerHTML = `<div style="text-align: center; padding: var(--space-md); color: var(--text-muted);"><p style="font-size: 0.85rem;">ఇంకా diary entries లేవు</p></div>`;
             return;
         }
-
-        container.innerHTML = allTeacherDiaries.slice(0, 10).map(d => {
+        container.innerHTML = allTeacherDiaries.slice(0, 15).map(d => {
             let sc = 'status-pending', st = '⏳ Pending';
             if (d.isApproved) { sc = 'status-approved'; st = '✅ Approved'; }
             else if (d.isRejected) { sc = 'status-rejected'; st = '❌ Rejected'; }
@@ -383,6 +423,123 @@ async function loadMyDiaries() {
     } catch (error) { console.error('Load diaries:', error); }
 }
 
+// =====================================================
+// LOAD MY ATTENDANCE (Step 5.7)
+// =====================================================
+async function loadMyAttendance() {
+    if (!currentTeacher) return;
+    const container = document.getElementById('myAttendanceList');
+    if (!container) return;
+    container.innerHTML = `<p style="color: var(--text-muted); text-align: center; padding: var(--space-sm);">లోడ్...</p>`;
+
+    try {
+        const assignments = currentTeacher.assignments || [];
+        const uniqueClasses = [...new Set(assignments.map(a => a.className))];
+
+        if (uniqueClasses.length === 0) {
+            container.innerHTML = `<p style="color: var(--text-muted); text-align: center; font-size: 0.85rem;">Classes assign చేయలేదు</p>`;
+            return;
+        }
+
+        const now = new Date();
+        const eduYear = getEduYear();
+        const month = getMonthName(now);
+
+        const allItems = [];
+
+        for (const cls of uniqueClasses) {
+            const doc = await db.collection('attendance').doc(eduYear).collection(cls).doc(month).get();
+            if (doc.exists) {
+                const data = doc.data();
+                const days = data.days || {};
+                const dates = Object.keys(days).sort().reverse();
+                dates.forEach(dateStr => {
+                    const dayData = days[dateStr];
+                    const entries = Object.values(dayData);
+                    const present = entries.filter(e => e.status === 'present').length;
+                    const absent = entries.filter(e => e.status === 'absent').length;
+                    const leave = entries.filter(e => e.status === 'leave').length;
+                    allItems.push({
+                        className: cls,
+                        date: dateStr,
+                        present, absent, leave,
+                        approved: data.approved === true
+                    });
+                });
+            }
+        }
+
+        allItems.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+        if (allItems.length === 0) {
+            container.innerHTML = `<p style="color: var(--text-muted); text-align: center; font-size: 0.85rem;">ఈ నెల attendance ఇంకా submit చేయలేదు</p>`;
+            return;
+        }
+
+        container.innerHTML = allItems.slice(0, 15).map(a => {
+            const bc = a.approved ? 'status-approved' : 'status-pending';
+            const st = a.approved ? '✅ Approved' : '⏳ Pending';
+            return `<div style="padding: var(--space-sm) 0; border-bottom: 1px solid var(--border-color);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <span style="font-size: 0.85rem; font-weight: 600;">${escapeHtml(a.className)} — 📅 ${escapeHtml(a.date)}</span>
+                    <span class="status-badge ${bc}">${st}</span>
+                </div>
+                <p style="font-size: 0.75rem; color: var(--text-muted);">
+                    ✅ ${a.present} | ❌ ${a.absent} | 📅 ${a.leave}
+                </p>
+            </div>`;
+        }).join('');
+    } catch (e) {
+        console.error('Load attendance:', e);
+        container.innerHTML = `<p style="color: var(--danger); text-align: center; font-size: 0.85rem;">లోడ్ విఫలం</p>`;
+    }
+}
+
+// =====================================================
+// LOAD MY LEAVES (Step 5.7)
+// =====================================================
+async function loadMyLeaves() {
+    if (!currentTeacher) return;
+    const container = document.getElementById('myLeavesList');
+    if (!container) return;
+    container.innerHTML = `<p style="color: var(--text-muted); text-align: center; padding: var(--space-sm);">లోడ్...</p>`;
+
+    try {
+        const snap = await db.collection('leaveLetters').where('teacherId', '==', currentTeacher.id).get();
+        const items = [];
+        snap.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
+        items.sort((a, b) => {
+            const ta = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+            const tb = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+            return tb - ta;
+        });
+
+        if (items.length === 0) {
+            container.innerHTML = `<p style="color: var(--text-muted); text-align: center; font-size: 0.85rem;">ఇంకా leaves submit చేయలేదు</p>`;
+            return;
+        }
+
+        container.innerHTML = items.slice(0, 15).map(l => {
+            let bc = 'status-pending', st = '⏳ Pending';
+            if (l.status === 'approved') { bc = 'status-approved'; st = '✅ Approved'; }
+            else if (l.status === 'rejected') { bc = 'status-rejected'; st = '❌ Rejected'; }
+            return `<div style="padding: var(--space-sm) 0; border-bottom: 1px solid var(--border-color);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <span style="font-size: 0.85rem; font-weight: 600;">📅 ${escapeHtml(l.fromDate || '')} → ${escapeHtml(l.toDate || '')}</span>
+                    <span class="status-badge ${bc}">${st}</span>
+                </div>
+                <p style="font-size: 0.72rem; color: var(--text-muted);">${escapeHtml(l.reason || '')}</p>
+            </div>`;
+        }).join('');
+    } catch (e) {
+        console.error('Load leaves:', e);
+        container.innerHTML = `<p style="color: var(--danger); text-align: center; font-size: 0.85rem;">లోడ్ విఫలం</p>`;
+    }
+}
+
+// =====================================================
+// SAVE DIARY
+// =====================================================
 async function handleSaveDiary() {
     if (!currentTeacher) return;
     const date = document.getElementById('diaryDate').value;
@@ -432,6 +589,9 @@ async function handleSaveDiary() {
     }
 }
 
+// =====================================================
+// EDIT DIARY
+// =====================================================
 function openEditDiary(diaryId) {
     const d = allTeacherDiaries.find(x => x.id === diaryId);
     if (!d) return;
@@ -489,7 +649,7 @@ async function handleSaveEditDiary() {
 }
 
 // =====================================================
-// ANNOUNCEMENT (Step 5.6)
+// ANNOUNCEMENT
 // =====================================================
 async function handleSendAnnouncement() {
     if (!currentTeacher) return;
@@ -498,18 +658,13 @@ async function handleSendAnnouncement() {
     const message = document.getElementById('announcementMessage').value.trim();
     const errorEl = document.getElementById('announcementError');
     const btn = document.getElementById('announcementSubmitBtn');
-
     if (!title) return showFormError(errorEl, 'Title నింపండి.');
     if (!message) return showFormError(errorEl, 'Message రాయండి.');
-
     btn.disabled = true; btn.innerHTML = 'పంపిస్తోంది...'; hideFormError(errorEl);
-
     try {
         await db.collection('announcements').add({
-            teacherId: currentTeacher.id,
-            teacherName: currentTeacher.name,
-            teacherPhone: currentTeacher.phone,
-            type: type, title: title, message: message,
+            teacherId: currentTeacher.id, teacherName: currentTeacher.name,
+            teacherPhone: currentTeacher.phone, type, title, message,
             status: 'pending',
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
@@ -520,8 +675,7 @@ async function handleSendAnnouncement() {
         console.error('Send announcement:', error);
         showFormError(errorEl, 'పంపడం విఫలం.');
     } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-paper-plane" style="margin-right: 8px;"></i> Send to HM';
+        btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane" style="margin-right: 8px;"></i> Send to HM';
     }
 }
 
@@ -663,6 +817,7 @@ async function handleSaveAttendance() {
             lastSubmittedAt: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
         UI.toast(`✅ Present: ${p}, Absent: ${a}, Leave: ${l}`, 'success');
+        await loadMyAttendance();
         showScreen('dashboard');
     } catch (error) {
         console.error('Save attendance:', error);
@@ -692,6 +847,7 @@ async function handleSaveLeave() {
         });
         UI.toast('✅ Leave Submit!', 'success');
         document.getElementById('leaveForm').reset();
+        await loadMyLeaves();
         showScreen('dashboard');
     } catch (error) {
         console.error('Leave:', error);
