@@ -1,4 +1,5 @@
-// js/pages/headmaster.js
+// js/pages/headmaster.js — Digital Manabadi v12.0
+// Changes: UI.initLayout() + UI.initLoginBackLogout()
 
 let currentScreen = 'loading';
 let loginFailCount = 0;
@@ -15,12 +16,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.documentElement.style.setProperty('--base-font-size', savedSize + 'px');
     }
 
+    // ✅ UI init (header, footer, back, PWA)
+    if (typeof UI !== 'undefined') {
+        UI.initLayout();
+    }
+
     setTimeout(async () => {
         const splash = document.getElementById('splash');
         const app = document.getElementById('hmApp');
         if (splash) splash.classList.add('hidden');
         if (app) app.classList.remove('hidden');
         setTimeout(() => splash && splash.remove(), 500);
+
+        // ✅ Login page — back → auto logoff
+        if (typeof UI !== 'undefined' && typeof UI.initLoginBackLogout === 'function') {
+            UI.initLoginBackLogout();
+        }
+
         await decideScreen();
     }, 1500);
 
@@ -79,8 +91,6 @@ function showScreen(name) {
     const target = document.getElementById('screen' + capitalize(name));
     if (target) target.classList.remove('hidden');
 
-    // ✅ backBtn కంట్రోల్ తీసేయబడింది. ui.js ఆటోమేటిక్ గా మేనేజ్ చేస్తుంది.
-
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) logoutBtn.classList.add('hidden');
 
@@ -114,15 +124,13 @@ function bindEvents() {
         });
     }
 
-    // ✅ backBtn ఈవెంట్ తీసేయబడింది. ui.js ఆటోమేటిక్ గా పని చేస్తుంది.
-
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
-            if (typeof Auth !== 'undefined') Auth.logout();
-            else {
-                localStorage.removeItem('dm_session');
-                window.location.href = 'index.html';
+            if (typeof UI !== 'undefined' && UI.confirmLogout) {
+                UI.confirmLogout();
+            } else if (typeof Auth !== 'undefined') {
+                Auth.logout();
             }
         });
     }
@@ -266,18 +274,10 @@ async function handleSetup() {
     const pin = document.getElementById('setupHmPin').value;
     const pinConfirm = document.getElementById('setupHmPinConfirm').value;
 
-    if (!district) {
-        return showFormError(errorEl, 'జిల్లా ఎంచుకోండి.');
-    }
-    if (!mandal || !village || !school || !hmName) {
-        return showFormError(errorEl, 'అన్ని ఫీల్డ్స్ నింపండి.');
-    }
-    if (!/^\d{6}$/.test(pin)) {
-        return showFormError(errorEl, 'PIN 6 అంకెలు ఉండాలి.');
-    }
-    if (pin !== pinConfirm) {
-        return showFormError(errorEl, 'PIN మరియు నిర్ధారణ PIN మ్యాచ్ అవ్వలేదు.');
-    }
+    if (!district) return showFormError(errorEl, 'జిల్లా ఎంచుకోండి.');
+    if (!mandal || !village || !school || !hmName) return showFormError(errorEl, 'అన్ని ఫీల్డ్స్ నింపండి.');
+    if (!/^\d{6}$/.test(pin)) return showFormError(errorEl, 'PIN 6 అంకెలు ఉండాలి.');
+    if (pin !== pinConfirm) return showFormError(errorEl, 'PIN మరియు నిర్ధారణ PIN మ్యాచ్ అవ్వలేదు.');
 
     btn.disabled = true;
     btn.textContent = 'సెటప్ అవుతోంది...';
