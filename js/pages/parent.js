@@ -36,11 +36,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 function addCustomBackButton() {
     const header = document.querySelector('.app-header');
     if (!header) return;
-    let backBtn = header.querySelector('#backBtn');
-    if (backBtn) backBtn.remove();
-    backBtn = document.createElement('button');
+
+    // ✅ FIX: Auto back button తీసేయి (duplicate prevent)
+    const autoBack = header.querySelector('.auto-back-btn');
+    if (autoBack) autoBack.remove();
+
+    // ✅ FIX: ఇప్పటికే custom back ఉందా? → skip
+    if (header.querySelector('#backBtn')) return;
+
+    const backBtn = document.createElement('button');
     backBtn.id = 'backBtn';
     backBtn.className = 'icon-btn back-btn hidden';
+    backBtn.setAttribute('aria-label', 'Back');
     backBtn.innerHTML = '<i class="fas fa-arrow-left"></i>';
     backBtn.addEventListener('click', () => {
         if (currentScreen === 'dashboard') showScreen('childSelect');
@@ -53,7 +60,6 @@ function addCustomBackButton() {
     });
     header.insertBefore(backBtn, header.firstChild);
 }
-
 async function decideScreen() {
     try {
         if (typeof authReady !== 'undefined') await Promise.race([authReady, new Promise(r => setTimeout(r, 3000))]);
