@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=17" />
 </head>
 <body class="page-teacher">
 
@@ -27,7 +27,6 @@
 
     <!-- Header -->
     <header class="app-header">
-      <!-- ✅ పాత బ్యాక్ బటన్ తీసేయబడింది. ui.js ఆటోమేటిక్ గా యాడ్ చేస్తుంది -->
       <h1 id="pageTitle" class="app-title">Teacher</h1>
       <button id="logoutBtn" class="icon-btn logout-btn hidden" aria-label="Logout" title="లాగౌట్">
         <i class="fas fa-sign-out-alt"></i>
@@ -40,12 +39,12 @@
       <div class="card card-center">
         <div class="login-icon">🔐</div>
         <h2 class="card-title">Teacher Login</h2>
-        <p class="card-desc">Teacher ID మరియు Master PIN నమోదు చేయండి</p>
+        <p class="card-desc">ఫోన్ నంబర్ మరియు Master PIN నమోదు చేయండి</p>
 
         <form id="teacherLoginForm" class="form" novalidate>
           <div class="field">
-            <label for="teacherId">Teacher ID</label>
-            <input type="text" id="teacherId" required autocomplete="off" placeholder="ఉదా: 919720-150190" />
+            <label for="teacherPhone">Phone Number</label>
+            <input type="tel" id="teacherPhone" maxlength="10" inputmode="numeric" required autocomplete="off" placeholder="10 అంకెల ఫోన్ నంబర్" />
           </div>
           <div class="field">
             <label for="teacherPin">Master PIN</label>
@@ -64,13 +63,33 @@
       </div>
     </section>
 
-    <!-- ========== SCREEN 2: DASHBOARD ========== -->
+    <!-- ========== SCREEN 2: NAME PROMPT (First Time) ========== -->
+    <section id="screenNamePrompt" class="screen hidden">
+      <div class="card card-center">
+        <div class="login-icon">🙏</div>
+        <h2 class="card-title">మీ పేరు ఏంటి?</h2>
+        <p class="card-desc">తర్వాత మీకు పేరుతో పిలవడానికి ఉపయోగపడుతుంది.</p>
+
+        <form id="nameForm" class="form" novalidate>
+          <div class="field">
+            <label for="teacherNameInput">మీ పేరు</label>
+            <input type="text" id="teacherNameInput" required autocomplete="off" placeholder="ఉదా: రమేష్ కుమార్" />
+          </div>
+          <p id="nameError" class="form-error hidden" role="alert"></p>
+          <button type="submit" id="nameSubmitBtn" class="btn btn-primary btn-block">
+            సేవ్ చేయండి
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- ========== SCREEN 3: DASHBOARD ========== -->
     <section id="screenDashboard" class="screen hidden">
       <!-- Welcome -->
       <div class="card" style="background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: #fff; border: none;">
-        <h2 style="font-size: 1.3rem; margin-bottom: 4px;">👋 స్వాగతం!</h2>
+        <h2 style="font-size: 1.3rem; margin-bottom: 4px;" id="greetingText">👋 స్వాగతం!</h2>
         <p id="teacherWelcomeName" style="font-size: 1.1rem; font-weight: 600;">—</p>
-        <p id="teacherWelcomeId" style="font-size: 0.8rem; opacity: 0.9;">—</p>
+        <p id="teacherWelcomePhone" style="font-size: 0.8rem; opacity: 0.9;">—</p>
       </div>
 
       <!-- Quick Actions -->
@@ -97,7 +116,7 @@
       </div>
     </section>
 
-    <!-- ========== SCREEN 3: WRITE DIARY ========== -->
+    <!-- ========== SCREEN 4: WRITE DIARY ========== -->
     <section id="screenDiary" class="screen hidden">
       <div class="card">
         <h2 class="card-title">📖 Diary రాయండి</h2>
@@ -111,12 +130,16 @@
 
           <div class="field">
             <label for="diaryClass">Class</label>
-            <input type="text" id="diaryClass" required autocomplete="off" placeholder="ఉదా: 6th Class A" />
+            <select id="diaryClass" required>
+              <option value="">-- Class ఎంచుకోండి --</option>
+            </select>
           </div>
 
           <div class="field">
             <label for="diarySubject">Subject</label>
-            <input type="text" id="diarySubject" required autocomplete="off" placeholder="ఉదా: Mathematics" />
+            <select id="diarySubject" required>
+              <option value="">-- Subject ఎంచుకోండి --</option>
+            </select>
           </div>
 
           <div class="field">
@@ -142,7 +165,7 @@
       </div>
     </section>
 
-    <!-- ========== SCREEN 4: LEAVE MARK ========== -->
+    <!-- ========== SCREEN 5: LEAVE MARK ========== -->
     <section id="screenLeave" class="screen hidden">
       <div class="card">
         <h2 class="card-title">📅 Leave మార్క్ చేయండి</h2>
@@ -196,6 +219,6 @@
   <script src="js/config.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/auth.js"></script>
-  <script src="js/pages/teacher.js?v=2"></script>
+  <script src="js/pages/teacher.js?v=17"></script>
 </body>
 </html>
