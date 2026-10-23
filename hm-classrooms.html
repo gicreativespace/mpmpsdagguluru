@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=15" />
+  <link rel="stylesheet" href="style.css?v=16" />
 </head>
 <body class="page-classrooms">
 
@@ -40,32 +40,40 @@
         <h2 class="card-title">🏫 Classrooms</h2>
         <p class="card-desc">తరగతులు మరియు విద్యార్థులు</p>
 
-        <button class="btn btn-primary btn-block" onclick="showAddClassScreen()" style="margin-bottom: var(--space-lg);">
-          <i class="fas fa-plus" style="margin-right: 6px;"></i> కొత్త Class యాడ్ చేయండి
-        </button>
-
         <div id="classroomsList">
           <p style="color: var(--text-muted); text-align: center; padding: var(--space-md);">లోడ్ అవుతోంది...</p>
         </div>
       </div>
     </section>
 
-    <!-- ========== SCREEN 2: ADD/EDIT CLASS ========== -->
-    <section id="screenClassForm" class="screen hidden">
+    <!-- ========== SCREEN 2: CREATE CLASS ========== -->
+    <section id="screenCreateClass" class="screen hidden">
       <div class="card">
-        <h2 class="card-title" id="classFormTitle">➕ కొత్త Class</h2>
-        <p class="card-desc" id="classFormDesc">Class వివరాలు నింపండి</p>
+        <h2 class="card-title">➕ కొత్త Class క్రియేట్ చేయండి</h2>
+        <p class="card-desc">Class మరియు Strength ఎంచుకోండి</p>
 
-        <form id="classForm" class="form" novalidate>
+        <form id="createClassForm" class="form" novalidate>
           <div class="field">
-            <label for="className">Class పేరు</label>
-            <input type="text" id="className" required autocomplete="off" placeholder="ఉదా: 6th Class A" />
+            <label for="newClassName">Class</label>
+            <select id="newClassName" required>
+              <option value="">-- Class ఎంచుకోండి --</option>
+              <option value="Class 1">Class 1</option>
+              <option value="Class 2">Class 2</option>
+              <option value="Class 3">Class 3</option>
+              <option value="Class 4">Class 4</option>
+              <option value="Class 5">Class 5</option>
+            </select>
           </div>
 
-          <p id="classError" class="form-error hidden" role="alert"></p>
+          <div class="field">
+            <label for="newClassStrength">Class Strength (మొత్తం విద్యార్థులు)</label>
+            <input type="number" id="newClassStrength" min="1" max="100" required placeholder="ఉదా: 30" />
+          </div>
 
-          <button type="submit" id="classSubmitBtn" class="btn btn-primary btn-block">
-            <i class="fas fa-save" style="margin-right: 8px;"></i> Save Class
+          <p id="createClassError" class="form-error hidden" role="alert"></p>
+
+          <button type="submit" id="createClassBtn" class="btn btn-primary btn-block">
+            <i class="fas fa-save" style="margin-right: 8px;"></i> Class క్రియేట్ చేయండి
           </button>
         </form>
 
@@ -75,15 +83,11 @@
       </div>
     </section>
 
-    <!-- ========== SCREEN 3: STUDENT LIST ========== -->
+    <!-- ========== SCREEN 3: STUDENTS LIST ========== -->
     <section id="screenStudents" class="screen hidden">
       <div class="card">
         <h2 class="card-title" id="studentsTitle">👨‍🎓 Students</h2>
         <p class="card-desc" id="studentsClassDesc">—</p>
-
-        <button class="btn btn-primary btn-block" onclick="showAddStudentScreen()" style="margin-bottom: var(--space-lg);">
-          <i class="fas fa-user-plus" style="margin-right: 6px;"></i> కొత్త Student యాడ్ చేయండి
-        </button>
 
         <div id="studentsList">
           <p style="color: var(--text-muted); text-align: center; padding: var(--space-md);">లోడ్ అవుతోంది...</p>
@@ -95,37 +99,30 @@
       </div>
     </section>
 
-    <!-- ========== SCREEN 4: ADD/EDIT STUDENT ========== -->
-    <section id="screenStudentForm" class="screen hidden">
+    <!-- ========== SCREEN 4: EDIT STUDENT (MODAL STYLE) ========== -->
+    <section id="screenEditStudent" class="screen hidden">
       <div class="card">
-        <h2 class="card-title" id="studentFormTitle">➕ కొత్త Student</h2>
-        <p class="card-desc" id="studentFormDesc">Student వివరాలు నింపండి</p>
+        <h2 class="card-title" id="editStudentTitle">✏️ విద్యార్థి వివరాలు</h2>
+        <p class="card-desc" id="editStudentDesc">—</p>
 
-        <form id="studentForm" class="form" novalidate>
+        <form id="editStudentForm" class="form" novalidate>
           <div class="field">
-            <label for="studentRollNumber">Roll Number</label>
-            <input type="text" id="studentRollNumber" maxlength="10" inputmode="numeric" required autocomplete="off" placeholder="ఉదా: 01" />
+            <label for="editStudentRoll">Roll Number</label>
+            <input type="text" id="editStudentRoll" readonly style="background: var(--surface); font-weight: bold; font-size: 1.2rem; text-align: center; letter-spacing: 2px;" />
+          </div>
+          <div class="field">
+            <label for="editStudentName">Student పేరు</label>
+            <input type="text" id="editStudentName" required autocomplete="off" placeholder="ఉదా: Ravi Kumar" />
+          </div>
+          <div class="field">
+            <label for="editStudentDob">పుట్టిన తేదీ (ddmmyy)</label>
+            <input type="text" id="editStudentDob" maxlength="6" inputmode="numeric" required autocomplete="off" placeholder="ఉదా: 150190" />
           </div>
 
-          <div class="field">
-            <label for="studentName">Student పేరు</label>
-            <input type="text" id="studentName" required autocomplete="off" placeholder="ఉదా: Ravi Kumar" />
-          </div>
+          <p id="editStudentError" class="form-error hidden" role="alert"></p>
 
-          <div class="field">
-            <label for="studentDob">పుట్టిన తేదీ (ddmmyy)</label>
-            <input type="text" id="studentDob" maxlength="6" inputmode="numeric" required autocomplete="off" placeholder="ఉదా: 150190" />
-          </div>
-
-          <div class="field">
-            <label for="studentParentPhone">Parent Phone (10 అంకెలు) — ఐచ్ఛికం</label>
-            <input type="tel" id="studentParentPhone" maxlength="10" inputmode="numeric" autocomplete="off" placeholder="ఉదా: 9876543210" />
-          </div>
-
-          <p id="studentError" class="form-error hidden" role="alert"></p>
-
-          <button type="submit" id="studentSubmitBtn" class="btn btn-primary btn-block">
-            <i class="fas fa-save" style="margin-right: 8px;"></i> Save Student
+          <button type="submit" id="editStudentBtn" class="btn btn-primary btn-block">
+            <i class="fas fa-save" style="margin-right: 8px;"></i> Save
           </button>
         </form>
 
@@ -154,6 +151,6 @@
   <script src="js/config.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/auth.js"></script>
-  <script src="js/pages/hm-classrooms.js?v=15"></script>
+  <script src="js/pages/hm-classrooms.js?v=16"></script>
 </body>
 </html>
