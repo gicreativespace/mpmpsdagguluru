@@ -1,7 +1,7 @@
-// js/ui.js — Digital Manabadi v12.0 (Full updated)
+// js/ui.js — Digital Manabadi v12.0 (Full updated + double back fix)
 // Changes: VALIASS_PHONE from config, Red dot logic, Auto logoff,
 //          Logout confirm, Modal helpers, setInterval removed,
-//          Splash hide, BackUrl support.
+//          Splash hide, BackUrl support, Double back button fix.
 
 const UI = {
 
@@ -16,7 +16,7 @@ const UI = {
     },
 
     // =====================================================
-    // AUTO BACK BUTTON (with backUrl support)
+    // AUTO BACK BUTTON (with backUrl support + duplicate fix)
     // =====================================================
     // Usage: UI.initAutoBackButton('hm-dashboard.html') — optional
     // Default: index.html
@@ -24,13 +24,17 @@ const UI = {
         const header = document.querySelector('.app-header');
         if (!header) return;
 
+        // ✅ FIX 1: Custom back button ఇప్పటికే ఉందా? → Skip (double prevent)
+        const customBackBtn = header.querySelector('#backBtn');
+        if (customBackBtn) return;
+
+        // ✅ FIX 2: పాత auto back button ఉందా? → తీసేయి (duplicate prevent)
+        const existingBackBtn = header.querySelector('.auto-back-btn');
+        if (existingBackBtn) existingBackBtn.remove();
+
         const currentPath = window.location.pathname;
         const isHomePage = currentPath.endsWith('index.html') || currentPath === '/' || currentPath.endsWith('/');
         if (isHomePage) return;
-
-        // పాత బటన్ తీసేయి
-        const existingBackBtn = header.querySelector('.auto-back-btn');
-        if (existingBackBtn) existingBackBtn.remove();
 
         const backBtn = document.createElement('button');
         backBtn.className = 'icon-btn back-btn auto-back-btn';
@@ -107,13 +111,11 @@ const UI = {
     // =====================================================
     // LOGIN PAGE — Auto Logoff on Back
     // =====================================================
-    // Usage: login pages లో initLayout() తర్వాత call చేయాలి
     initLoginBackLogout: function() {
         const header = document.querySelector('.app-header');
         if (!header) return;
         const backBtn = header.querySelector('.auto-back-btn');
         if (backBtn) {
-            // existing listener ఉంటుంది — replace చేయి
             backBtn.replaceWith(backBtn.cloneNode(true));
             const newBackBtn = header.querySelector('.auto-back-btn');
             newBackBtn.addEventListener('click', () => {
@@ -138,7 +140,6 @@ const UI = {
     showContact: function() {
         let modal = document.getElementById('contact-modal');
         if (!modal) {
-            // ✅ config.js నుంచి phone వాడు (hardcode కాదు)
             const phone = (typeof VALIASS_PHONE !== 'undefined') ? VALIASS_PHONE : '918985361991';
             const displayPhone = phone.startsWith('91') ? '+91 ' + phone.slice(2) : phone;
 
@@ -212,12 +213,8 @@ const UI = {
     },
 
     // =====================================================
-    // RED DOT — Unread Notice (Local Storage)
+    // RED DOT — Unread Notice
     // =====================================================
-    // Usage: page లో notice board render అయ్యాక —
-    //   UI.hasUnreadNotices(latestNoticeTimeISO) → true/false
-    // Notice board open అయినప్పుడు —
-    //   UI.markNoticesRead()
     hasUnreadNotices: function(latestNoticeTimeISO) {
         if (!latestNoticeTimeISO) return false;
         const lastRead = localStorage.getItem('dm_lastReadNoticeTime') || '0';
