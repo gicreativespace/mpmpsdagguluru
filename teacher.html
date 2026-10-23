@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=26" />
+  <link rel="stylesheet" href="style.css?v=28" />
 </head>
 <body class="page-teacher">
 
@@ -105,7 +105,6 @@
         </p>
       </div>
 
-      <!-- QUICK ACTIONS -->
       <div class="card">
         <h3 class="card-title" style="font-size: 1.1rem; text-align: left;">⚡ త్వరిత చర్యలు</h3>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); margin-top: var(--space-md);">
@@ -130,9 +129,35 @@
         </div>
       </div>
 
+      <!-- SUBMITTED ITEMS (Step 5.7 — 3 tabs) -->
       <div class="card">
-        <h3 class="card-title" style="font-size: 1.1rem; text-align: left;">📖 నా Diary Entries</h3>
-        <div id="myDiariesList" style="margin-top: var(--space-md);">
+        <h3 class="card-title" style="font-size: 1.1rem; text-align: left; margin-bottom: var(--space-md);">📤 నా Submissions</h3>
+
+        <!-- Tabs -->
+        <div style="display: flex; gap: var(--space-xs); margin-bottom: var(--space-md);">
+          <button id="tabMyDiary" class="btn btn-primary" onclick="switchSubmittedTab('diary')" style="flex: 1; padding: 8px; font-size: 0.8rem;">
+            📖 Diary
+          </button>
+          <button id="tabMyAttendance" class="btn btn-outline" onclick="switchSubmittedTab('attendance')" style="flex: 1; padding: 8px; font-size: 0.8rem;">
+            ✅ Attend.
+          </button>
+          <button id="tabMyLeave" class="btn btn-outline" onclick="switchSubmittedTab('leave')" style="flex: 1; padding: 8px; font-size: 0.8rem;">
+            📅 Leave
+          </button>
+        </div>
+
+        <!-- Diary List -->
+        <div id="myDiariesList">
+          <p style="color: var(--text-muted); text-align: center; padding: var(--space-md);">లోడ్ అవుతోంది...</p>
+        </div>
+
+        <!-- Attendance List -->
+        <div id="myAttendanceList" style="display: none;">
+          <p style="color: var(--text-muted); text-align: center; padding: var(--space-md);">లోడ్ అవుతోంది...</p>
+        </div>
+
+        <!-- Leave List -->
+        <div id="myLeavesList" style="display: none;">
           <p style="color: var(--text-muted); text-align: center; padding: var(--space-md);">లోడ్ అవుతోంది...</p>
         </div>
       </div>
@@ -256,12 +281,11 @@
       </div>
     </section>
 
-    <!-- SCREEN 8: ANNOUNCEMENT (Step 5.6 — NEW) -->
+    <!-- SCREEN 8: ANNOUNCEMENT -->
     <section id="screenAnnouncement" class="screen hidden">
       <div class="card">
         <h2 class="card-title">📢 Announcement పంపండి</h2>
         <p class="card-desc">HM కి announcement పంపండి (approve అయ్యాక notice board లో కనిపిస్తుంది)</p>
-
         <form id="announcementForm" class="form" novalidate>
           <div class="field">
             <label for="announcementType">Type</label>
@@ -283,13 +307,10 @@
             <i class="fas fa-paper-plane" style="margin-right: 8px;"></i> Send to HM
           </button>
         </form>
-
         <button type="button" class="link-btn" onclick="showScreen('dashboard')">
           <i class="fas fa-arrow-left"></i> వెనక్కి
         </button>
       </div>
-
-      <!-- Submitted announcements list -->
       <div class="card">
         <h3 class="card-title" style="font-size: 1.05rem; text-align: left;">📤 నా Announcements</h3>
         <div id="myAnnouncementsList" style="margin-top: var(--space-md);">
@@ -311,6 +332,6 @@
   <script src="js/config.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/auth.js"></script>
-  <script src="js/pages/teacher.js?v=26"></script>
+  <script src="js/pages/teacher.js?v=28"></script>
 </body>
 </html>
