@@ -10,11 +10,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=6" />
 </head>
 <body class="page-dashboard">
 
-  <!-- ===== SPLASH SCREEN ===== -->
+  <!-- SPLASH -->
   <div id="splash" class="splash-screen">
     <div class="splash-logo" style="font-size:4rem;">🏫</div>
     <h1 class="splash-title">Digital Manabadi</h1>
@@ -22,14 +22,10 @@
     <div class="splash-loader"></div>
   </div>
 
-  <!-- ===== MAIN APP ===== -->
+  <!-- MAIN APP -->
   <main id="dashboardApp" class="hm-app hidden">
 
-    <!-- Header -->
     <header class="app-header">
-      <button id="backBtn" class="icon-btn back-btn" aria-label="Back" title="వెనక్కి">
-        <i class="fas fa-arrow-left"></i>
-      </button>
       <h1 id="pageTitle" class="app-title">Dashboard</h1>
       <button id="logoutBtn" class="icon-btn logout-btn" aria-label="Logout" title="లాగౌట్">
         <i class="fas fa-sign-out-alt"></i>
@@ -37,13 +33,15 @@
       <button id="themeBtn" class="icon-btn theme-btn" aria-label="Theme" title="థీమ్">🌙</button>
     </header>
 
-    <!-- ========== SCREEN: DASHBOARD ========== -->
     <section id="screenDashboard" class="screen">
-      <!-- Welcome Card -->
-      <div class="card" style="background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: #fff; border: none;">
-        <h2 style="font-size: 1.4rem; margin-bottom: 4px;">👋 స్వాగతం!</h2>
-        <p id="welcomeHmName" style="font-size: 1.1rem; font-weight: 600; margin-bottom: 4px;">—</p>
-        <p id="welcomeSchoolName" style="font-size: 0.85rem; opacity: 0.9;">—</p>
+      <!-- Welcome Banner -->
+      <div class="welcome-banner">
+        <div class="welcome-greeting" id="welcomeGreeting">👋 స్వాగతం</div>
+        <div class="welcome-name" id="welcomeHmName">— గారు</div>
+        <div class="welcome-time">
+          <i class="fas fa-school"></i>
+          <span id="welcomeSchoolName">—</span>
+        </div>
       </div>
 
       <!-- Section Toggles -->
@@ -98,30 +96,80 @@
         </div>
       </div>
 
-      <!-- Quick Actions -->
+      <!-- Main Section Cards (v12.0 Section Card Style) -->
       <div class="card">
-        <h3 class="card-title" style="font-size: 1.1rem; text-align: left;">⚡ త్వరిత చర్యలు</h3>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); margin-top: var(--space-md);">
-          
-          <button class="btn btn-primary" onclick="navigateTo('hm-staff.html')" style="padding: 20px 10px; flex-direction: column; gap: 8px;">
-            <i class="fas fa-users-cog" style="font-size: 1.6rem;"></i>
-            <span style="font-size: 0.85rem;">Staff Management</span>
-          </button>
+        <h3 class="card-title" style="font-size: 1.1rem; text-align: left; margin-bottom: var(--space-md);">📋 విభాగాలు</h3>
 
-          <button class="btn btn-primary" onclick="navigateTo('hm-notice.html')" style="padding: 20px 10px; flex-direction: column; gap: 8px;">
-            <i class="fas fa-bullhorn" style="font-size: 1.6rem;"></i>
-            <span style="font-size: 0.85rem;">Notice Board</span>
-          </button>
+        <div class="section-card" onclick="navigateTo('hm-staff.html')">
+          <div class="section-card-icon">👥</div>
+          <div class="section-card-body">
+            <div class="section-card-title">Staff Management</div>
+            <div class="section-card-sub">Teacher & Cook నిర్వహణ</div>
+          </div>
+          <div class="section-card-arrow">›</div>
+        </div>
 
-          <button class="btn btn-primary" onclick="navigateTo('hm-classrooms.html')" style="padding: 20px 10px; flex-direction: column; gap: 8px;">
-            <i class="fas fa-school" style="font-size: 1.6rem;"></i>
-            <span style="font-size: 0.85rem;">Classrooms</span>
-          </button>
+        <div class="section-card" onclick="navigateTo('hm-classrooms.html')">
+          <div class="section-card-icon">🏫</div>
+          <div class="section-card-body">
+            <div class="section-card-title">Classrooms</div>
+            <div class="section-card-sub">Classes & Students</div>
+          </div>
+          <div class="section-card-arrow">›</div>
+        </div>
 
-          <button class="btn btn-primary" onclick="navigateTo('hm-approvals.html')" style="padding: 20px 10px; flex-direction: column; gap: 8px;">
-            <i class="fas fa-check-double" style="font-size: 1.6rem;"></i>
-            <span style="font-size: 0.85rem;">Approvals</span>
-          </button>
+        <div class="section-card" id="cardNotice" onclick="navigateTo('hm-notice.html')">
+          <div class="section-card-icon">📢</div>
+          <div class="section-card-body">
+            <div class="section-card-title">Notice Board</div>
+            <div class="section-card-sub">Notices పోస్ట్ చేయండి</div>
+          </div>
+          <div class="section-card-arrow">›</div>
+        </div>
+
+        <div class="section-card" onclick="navigateTo('hm-leaves.html')">
+          <div class="section-card-icon">📅</div>
+          <div class="section-card-body">
+            <div class="section-card-title">Leave Requests</div>
+            <div class="section-card-sub">Teacher + Student leaves</div>
+          </div>
+          <div class="section-card-arrow">›</div>
+        </div>
+
+        <div class="section-card" onclick="navigateTo('hm-diary.html')">
+          <div class="section-card-icon">📖</div>
+          <div class="section-card-body">
+            <div class="section-card-title">E-Diary</div>
+            <div class="section-card-sub">Approve + WhatsApp + Poster</div>
+          </div>
+          <div class="section-card-arrow">›</div>
+        </div>
+
+        <div class="section-card" onclick="navigateTo('hm-attendance.html')">
+          <div class="section-card-icon">✅</div>
+          <div class="section-card-body">
+            <div class="section-card-title">Attendance</div>
+            <div class="section-card-sub">Teacher submitted approve</div>
+          </div>
+          <div class="section-card-arrow">›</div>
+        </div>
+
+        <div class="section-card" onclick="navigateTo('hm-menu.html')">
+          <div class="section-card-icon">🍽️</div>
+          <div class="section-card-body">
+            <div class="section-card-title">Menu Management</div>
+            <div class="section-card-sub">Weekly menu + Sponsor</div>
+          </div>
+          <div class="section-card-arrow">›</div>
+        </div>
+
+        <div class="section-card" onclick="navigateTo('hm-approvals.html')">
+          <div class="section-card-icon">⏳</div>
+          <div class="section-card-body">
+            <div class="section-card-title">Approvals (Pending)</div>
+            <div class="section-card-sub">Diary + Attendance pending</div>
+          </div>
+          <div class="section-card-arrow">›</div>
         </div>
       </div>
 
@@ -150,25 +198,23 @@
 
     </section>
 
-    <!-- FOOTER -->
     <footer class="app-footer">
       An initiative of <span class="valiass-link" onclick="UI.showContact()">@valiass</span> team
     </footer>
 
   </main>
 
-  <!-- TOAST CONTAINER -->
   <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
-  <!-- ==================== FIREBASE SDKs ==================== -->
+  <!-- FIREBASE -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 
-  <!-- ==================== APP SCRIPTS ==================== -->
+  <!-- APP -->
   <script src="js/config.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/auth.js"></script>
-  <script src="js/pages/hm-dashboard.js"></script>
+  <script src="js/pages/hm-dashboard.js?v=6"></script>
 </body>
 </html>
