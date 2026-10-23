@@ -1,57 +1,50 @@
-// js/ui.js
+// js/ui.js — Digital Manabadi v12.0 (Full updated)
+// Changes: VALIASS_PHONE from config, Red dot logic, Auto logoff,
+//          Logout confirm, Modal helpers, setInterval removed,
+//          Splash hide, BackUrl support.
 
 const UI = {
 
+    // =====================================================
+    // INIT LAYOUT
+    // =====================================================
     initLayout: function() {
         this.refreshHeader();
         this.renderFooter();
-        // ✅ హెడర్ రెండర్ అయ్యాక ఆటోమేటిక్ గా బ్యాక్ బటన్ ని యాడ్ చేయి
-        this.initAutoBackButton(); 
+        this.initAutoBackButton();
+        this.initPWA();
     },
 
     // =====================================================
-    // AUTO BACK BUTTON (లాగిన్/ఇన్నర్ పేజీలకు మాత్రమే)
+    // AUTO BACK BUTTON (with backUrl support)
     // =====================================================
-    initAutoBackButton: function() {
+    // Usage: UI.initAutoBackButton('hm-dashboard.html') — optional
+    // Default: index.html
+    initAutoBackButton: function(backUrl) {
         const header = document.querySelector('.app-header');
         if (!header) return;
 
-        // ✅ హోమ్ పేజీ (index.html) అయితే బ్యాక్ బటన్ వద్దు
         const currentPath = window.location.pathname;
         const isHomePage = currentPath.endsWith('index.html') || currentPath === '/' || currentPath.endsWith('/');
         if (isHomePage) return;
 
-        // పాత బ్యాక్ బటన్ ఉంటే తీసేయి
-        const existingBackBtn = header.querySelector('#backBtn');
+        // పాత బటన్ తీసేయి
+        const existingBackBtn = header.querySelector('.auto-back-btn');
         if (existingBackBtn) existingBackBtn.remove();
 
-        // ఆటోమేటిక్ బ్యాక్ బటన్ ఇప్పటికే ఉంటే ఆపు
-        if (header.querySelector('.auto-back-btn')) return;
-
-        // కొత్త బ్యాక్ బటన్ క్రియేట్ చేయి
         const backBtn = document.createElement('button');
         backBtn.className = 'icon-btn back-btn auto-back-btn';
         backBtn.setAttribute('aria-label', 'Back');
         backBtn.setAttribute('title', 'వెనక్కి');
         backBtn.innerHTML = '<i class="fas fa-arrow-left"></i>';
-        
-        // క్లిక్ చేస్తే హోమ్ పేజీకి వెళ్లు
+
+        // ✅ backUrl ఉంటే అక్కడికి, లేకపోతే index.html
         backBtn.addEventListener('click', () => {
-            window.location.href = 'index.html';
+            const target = backUrl || 'index.html';
+            window.location.href = target;
         });
 
-        // హెడర్ లో మొదటి ఎలిమెంట్ గా యాడ్ చేయి
         header.insertBefore(backBtn, header.firstChild);
-
-        // ✅ Strict Force Mode: ప్రతి 300ms కి ఒకసారి చెక్ చేసి, ఎవరైనా బటన్ ని దాచినా మళ్లీ కనిపించేలా చేయి
-        setInterval(() => {
-            if (backBtn.style.display === 'none') {
-                backBtn.style.display = 'flex';
-            }
-            if (backBtn.classList.contains('hidden')) {
-                backBtn.classList.remove('hidden');
-            }
-        }, 300);
     },
 
     // =====================================================
@@ -89,11 +82,44 @@ const UI = {
                 </div>
                 <div class="header-title">${displayName}</div>
                 <div class="header-right">
-                    <button class="header-btn" onclick="if(typeof Auth!=='undefined') Auth.logout(); else window.location.href='index.html'" aria-label="Logout">
+                    <button class="header-btn" onclick="UI.confirmLogout()" aria-label="Logout">
                         <i class="fas fa-sign-out-alt"></i>
                     </button>
                 </div>
             `;
+        }
+    },
+
+    // =====================================================
+    // LOGOUT (Confirm)
+    // =====================================================
+    confirmLogout: function() {
+        if (confirm('Logout అవ్వాలా?')) {
+            if (typeof Auth !== 'undefined' && Auth.logout) {
+                Auth.logout();
+            } else {
+                localStorage.removeItem('dm_session');
+                window.location.href = 'index.html';
+            }
+        }
+    },
+
+    // =====================================================
+    // LOGIN PAGE — Auto Logoff on Back
+    // =====================================================
+    // Usage: login pages లో initLayout() తర్వాత call చేయాలి
+    initLoginBackLogout: function() {
+        const header = document.querySelector('.app-header');
+        if (!header) return;
+        const backBtn = header.querySelector('.auto-back-btn');
+        if (backBtn) {
+            // existing listener ఉంటుంది — replace చేయి
+            backBtn.replaceWith(backBtn.cloneNode(true));
+            const newBackBtn = header.querySelector('.auto-back-btn');
+            newBackBtn.addEventListener('click', () => {
+                localStorage.removeItem('dm_session');
+                window.location.href = 'index.html';
+            });
         }
     },
 
@@ -107,29 +133,33 @@ const UI = {
     },
 
     // =====================================================
-    // CONTACT MODAL
+    // CONTACT MODAL (Valiass)
     // =====================================================
     showContact: function() {
         let modal = document.getElementById('contact-modal');
         if (!modal) {
+            // ✅ config.js నుంచి phone వాడు (hardcode కాదు)
+            const phone = (typeof VALIASS_PHONE !== 'undefined') ? VALIASS_PHONE : '918985361991';
+            const displayPhone = phone.startsWith('91') ? '+91 ' + phone.slice(2) : phone;
+
             modal = document.createElement('div');
             modal.id = 'contact-modal';
             modal.className = 'modal-overlay';
             modal.innerHTML = `
-                <div class="modal-content" style="text-align: center; padding-bottom: var(--space-xl);">
+                <div class="modal-content" style="text-align: center; padding-bottom: var(--space-xl); position: relative;">
                     <h3 style="color: var(--primary); margin-bottom: 4px;">Contact Valiass Team</h3>
-                    <p style="color: var(--text-muted); font-weight: 600; font-size: 1.1rem; margin-bottom: var(--space-lg);">+91 8985361991</p>
+                    <p style="color: var(--text-muted); font-weight: 600; font-size: 1.1rem; margin-bottom: var(--space-lg);">${displayPhone}</p>
                     <div style="display: flex; gap: var(--space-md); justify-content: center; margin-bottom: var(--space-lg);">
-                        <a href="tel:8985361991" style="display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--surface);border:2px solid var(--primary);color:var(--primary);padding:16px;border-radius:var(--radius-lg);text-decoration:none;width:120px;">
+                        <a href="tel:${phone}" style="display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--surface);border:2px solid var(--primary);color:var(--primary);padding:16px;border-radius:var(--radius-lg);text-decoration:none;width:120px;">
                             <i class="fas fa-phone-alt" style="font-size:2rem;margin-bottom:8px;"></i>
                             <span style="font-weight:600;">Call</span>
                         </a>
-                        <a href="https://wa.me/918985361991" target="_blank" style="display:flex;flex-direction:column;align-items:center;justify-content:center;background:#25D366;border:2px solid #25D366;color:white;padding:16px;border-radius:var(--radius-lg);text-decoration:none;width:120px;">
+                        <a href="https://wa.me/${phone}" target="_blank" style="display:flex;flex-direction:column;align-items:center;justify-content:center;background:#25D366;border:2px solid #25D366;color:white;padding:16px;border-radius:var(--radius-lg);text-decoration:none;width:120px;">
                             <i class="fab fa-whatsapp" style="font-size:2.2rem;margin-bottom:6px;"></i>
                             <span style="font-weight:600;">WhatsApp</span>
                         </a>
                     </div>
-                    <button class="btn btn-outline" style="border:none;color:var(--text-muted);" onclick="document.getElementById('contact-modal').classList.remove('active')">Cancel</button>
+                    <button class="btn btn-outline" style="border:none;color:var(--text-muted);" onclick="UI.closeModal('contact-modal')">Cancel</button>
                 </div>
             `;
             document.body.appendChild(modal);
@@ -138,6 +168,19 @@ const UI = {
             });
         }
         setTimeout(() => modal.classList.add('active'), 10);
+    },
+
+    // =====================================================
+    // MODAL HELPERS (Generic)
+    // =====================================================
+    openModal: function(id) {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('active');
+    },
+
+    closeModal: function(id) {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('active');
     },
 
     // =====================================================
@@ -169,6 +212,23 @@ const UI = {
     },
 
     // =====================================================
+    // RED DOT — Unread Notice (Local Storage)
+    // =====================================================
+    // Usage: page లో notice board render అయ్యాక —
+    //   UI.hasUnreadNotices(latestNoticeTimeISO) → true/false
+    // Notice board open అయినప్పుడు —
+    //   UI.markNoticesRead()
+    hasUnreadNotices: function(latestNoticeTimeISO) {
+        if (!latestNoticeTimeISO) return false;
+        const lastRead = localStorage.getItem('dm_lastReadNoticeTime') || '0';
+        return new Date(latestNoticeTimeISO) > new Date(lastRead);
+    },
+
+    markNoticesRead: function() {
+        localStorage.setItem('dm_lastReadNoticeTime', new Date().toISOString());
+    },
+
+    // =====================================================
     // TOAST
     // =====================================================
     toast: function(message, type = 'info', duration = 3000) {
@@ -193,6 +253,17 @@ const UI = {
             toast.classList.remove('show');
             setTimeout(() => toast.remove(), 300);
         }, duration);
+    },
+
+    // =====================================================
+    // SPLASH HIDE
+    // =====================================================
+    hideSplash: function() {
+        const splash = document.getElementById('splash-screen');
+        if (splash) {
+            splash.classList.add('hidden');
+            setTimeout(() => splash.remove(), 500);
+        }
     },
 
     // =====================================================
