@@ -176,8 +176,15 @@ async function handleCookLogin() {
             return showFormError(errorEl, '🔒 మీ ఖాతా నిలిపివేయబడింది. HM ని సంప్రదించండి.');
         }
 
+                // ✅ PIN ఫార్ములా: 9999 - ఫోన్ చివరి 4 అంకెలు
+        const last4 = parseInt(phone.slice(-4), 10);
+        let expectedPin = 9999 - last4;
+        if (expectedPin < 0) expectedPin = expectedPin + 10000;
+        expectedPin = String(expectedPin).padStart(4, '0');
+
         const storedPin = String(cookData.masterPin || '').trim();
-        if (storedPin !== pin) {
+        
+        if (storedPin !== expectedPin || pin !== expectedPin) {
             return showFormError(errorEl, '❌ తప్పు Master PIN.');
         }
 
