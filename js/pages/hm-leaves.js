@@ -1,6 +1,4 @@
-// js/pages/hm-leaves.js — v12.0 (Step 4.5)
-// Teacher + Student leaves (2 tabs), Approve/Reject
-
+// js/pages/hm-leaves.js — v12.0 (Step 5.4 — Auto Leave Mark)
 let currentTab = 'teacher';
 let currentFilter = 'all';
 let allLeaves = [];
@@ -9,7 +7,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const savedTheme = localStorage.getItem('dm_theme') || 'light';
     document.body.setAttribute('data-theme', savedTheme);
     const savedSize = localStorage.getItem('dm_font_size');
-    if (savedSize) document.documentElement.setProperty ? null : document.documentElement.style.setProperty('--base-font-size', savedSize + 'px');
+    if (savedSize) document.documentElement.style.setProperty('--base-font-size', savedSize + 'px');
 
     const session = Auth.checkAuth('headmaster');
     if (!session) return;
@@ -32,55 +30,35 @@ function addCustomBackButton() {
     if (!header) return;
     let backBtn = header.querySelector('#backBtn');
     if (backBtn) backBtn.remove();
-
     backBtn = document.createElement('button');
     backBtn.id = 'backBtn';
     backBtn.className = 'icon-btn back-btn';
-    backBtn.setAttribute('aria-label', 'Back');
     backBtn.innerHTML = '<i class="fas fa-arrow-left"></i>';
-
-    backBtn.addEventListener('click', () => {
-        window.location.href = 'hm-dashboard.html';
-    });
-
+    backBtn.addEventListener('click', () => window.location.href = 'hm-dashboard.html');
     header.insertBefore(backBtn, header.firstChild);
 }
 
 function bindEvents() {
     const themeBtn = document.getElementById('themeBtn');
-    if (themeBtn) {
-        themeBtn.addEventListener('click', () => {
-            if (typeof UI !== 'undefined') UI.toggleTheme();
-            themeBtn.textContent = document.body.getAttribute('data-theme') === 'dark' ? '☀️' : '🌙';
-        });
-    }
-
+    if (themeBtn) themeBtn.addEventListener('click', () => {
+        if (typeof UI !== 'undefined') UI.toggleTheme();
+        themeBtn.textContent = document.body.getAttribute('data-theme') === 'dark' ? '☀️' : '🌙';
+    });
     const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', () => {
-            if (typeof UI !== 'undefined' && UI.confirmLogout) UI.confirmLogout();
-            else if (confirm('లాగౌట్ చేయాలా?')) Auth.logout();
-        });
-    }
+    if (logoutBtn) logoutBtn.addEventListener('click', () => {
+        if (typeof UI !== 'undefined' && UI.confirmLogout) UI.confirmLogout();
+        else if (confirm('లాగౌట్ చేయాలా?')) Auth.logout();
+    });
 }
 
-// =====================================================
-// LOAD LEAVES
-// =====================================================
 async function loadLeaves() {
     const container = document.getElementById('leavesList');
-    container.innerHTML = `<p style="color: var(--text-muted); text-align: center; padding: var(--space-md);">లోడ్ అవుతోంది...</p>`;
-
+    container.innerHTML = `<p style="color: var(--text-muted); text-align: center; padding: var(--space-md);">లోడ్...</p>`;
     try {
-        if (typeof authReady !== 'undefined') {
-            await Promise.race([authReady, new Promise(r => setTimeout(r, 3000))]);
-        }
-
-        const snapshot = await db.collection('leaveLetters').get();
+        if (typeof authReady !== 'undefined') await Promise.race([authReady, new Promise(r => setTimeout(r, 3000))]);
+        const snap = await db.collection('leaveLetters').get();
         allLeaves = [];
-        snapshot.forEach(doc => allLeaves.push({ id: doc.id, ...doc.data() }));
-
-        // Sort: pending first, then by date desc
+        snap.forEach(doc => allLeaves.push({ id: doc.id, ...doc.data() }));
         allLeaves.sort((a, b) => {
             if (a.status === 'pending' && b.status !== 'pending') return -1;
             if (a.status !== 'pending' && b.status === 'pending') return 1;
@@ -88,17 +66,13 @@ async function loadLeaves() {
             const tb = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
             return tb - ta;
         });
-
         renderLeaves();
-    } catch (error) {
-        console.error('Load leaves error:', error);
-        container.innerHTML = `<p style="color: var(--danger); text-align: center; padding: var(--space-md);">లోడ్ విఫలమైంది</p>`;
+    } catch (e) {
+        console.error('Load leaves:', e);
+        container.innerHTML = `<p style="color: var(--danger); text-align: center;">లోడ్ విఫలం</p>`;
     }
 }
 
-// =====================================================
-// TABS
-// =====================================================
 function switchTab(tab) {
     currentTab = tab;
     document.getElementById('tabTeacher').className = tab === 'teacher' ? 'btn btn-primary' : 'btn btn-outline';
@@ -113,19 +87,12 @@ function switchFilter(filter) {
     renderLeaves();
 }
 
-// =====================================================
-// RENDER
-// =====================================================
 function renderLeaves() {
     const container = document.getElementById('leavesList');
     if (!container) return;
-
     const typeFilter = currentTab === 'teacher' ? 'teacher' : 'student';
     let filtered = allLeaves.filter(l => (l.type || 'teacher') === typeFilter);
-
-    if (currentFilter === 'pending') {
-        filtered = filtered.filter(l => l.status === 'pending');
-    }
+    if (currentFilter === 'pending') filtered = filtered.filter(l => l.status === 'pending');
 
     if (filtered.length === 0) {
         container.innerHTML = `<div class="card" style="text-align: center; padding: var(--space-xl);">
@@ -134,7 +101,6 @@ function renderLeaves() {
         </div>`;
         return;
     }
-
     container.innerHTML = filtered.map(leave => renderLeaveCard(leave)).join('');
 }
 
@@ -147,56 +113,53 @@ function renderLeaveCard(leave) {
     const reason = leave.reason || '';
     const status = leave.status || 'pending';
 
-    let statusClass = 'status-pending', statusText = '⏳ Pending';
-    if (status === 'approved') { statusClass = 'status-approved'; statusText = '✅ Approved'; }
-    else if (status === 'rejected') { statusClass = 'status-rejected'; statusText = '❌ Rejected'; }
+    let sc = 'status-pending', st = '⏳ Pending';
+    if (status === 'approved') { sc = 'status-approved'; st = '✅ Approved'; }
+    else if (status === 'rejected') { sc = 'status-rejected'; st = '❌ Rejected'; }
 
     const canAct = status === 'pending';
 
-    return `
-        <div class="card" style="padding: var(--space-md); margin-bottom: var(--space-sm);">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-sm);">
-                <div style="flex: 1;">
-                    <h4 style="font-size: 1rem; margin-bottom: 4px;">${escapeHtml(name)}</h4>
-                    <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px;">${escapeHtml(role)}${phone ? ' • 📞 ' + escapeHtml(phone) : ''}</p>
-                    <p style="font-size: 0.85rem; font-weight: 600; color: var(--primary);">📅 ${escapeHtml(from)} → ${escapeHtml(to)}</p>
-                </div>
-                <span class="status-badge ${statusClass}">${statusText}</span>
+    return `<div class="card" style="padding: var(--space-md); margin-bottom: var(--space-sm);">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-sm);">
+            <div style="flex: 1;">
+                <h4 style="font-size: 1rem; margin-bottom: 4px;">${escapeHtml(name)}</h4>
+                <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px;">${escapeHtml(role)}${phone ? ' • 📞 ' + escapeHtml(phone) : ''}</p>
+                <p style="font-size: 0.85rem; font-weight: 600; color: var(--primary);">📅 ${escapeHtml(from)} → ${escapeHtml(to)}</p>
             </div>
-            <p style="font-size: 0.85rem; color: var(--text-main); margin-bottom: var(--space-sm); padding: 8px; background: var(--bg-color); border-radius: var(--radius-sm);">
-                📝 ${escapeHtml(reason)}
-            </p>
-            ${canAct ? `
-                <div style="display: flex; gap: var(--space-sm);">
-                    <button class="btn btn-primary" onclick="approveLeave('${leave.id}')" style="flex: 1; padding: 10px; font-size: 0.85rem;">
-                        <i class="fas fa-check" style="margin-right: 4px;"></i> Approve
-                    </button>
-                    <button class="btn btn-danger" onclick="rejectLeave('${leave.id}')" style="flex: 1; padding: 10px; font-size: 0.85rem;">
-                        <i class="fas fa-times" style="margin-right: 4px;"></i> Reject
-                    </button>
-                </div>
-            ` : `
-                <p style="font-size: 0.7rem; color: var(--text-muted);">
-                    ${leave.approvedBy ? '✅ Approved by: ' + escapeHtml(leave.approvedBy) : ''}
-                    ${leave.rejectedBy ? '❌ Rejected by: ' + escapeHtml(leave.rejectedBy) : ''}
-                </p>
-            `}
+            <span class="status-badge ${sc}">${st}</span>
         </div>
-    `;
+        <p style="font-size: 0.85rem; margin-bottom: var(--space-sm); padding: 8px; background: var(--bg-color); border-radius: var(--radius-sm);">📝 ${escapeHtml(reason)}</p>
+        ${canAct ? `<div style="display: flex; gap: var(--space-sm);">
+            <button class="btn btn-primary" onclick="approveLeave('${leave.id}')" style="flex: 1; padding: 10px; font-size: 0.85rem;"><i class="fas fa-check"></i> Approve</button>
+            <button class="btn btn-danger" onclick="rejectLeave('${leave.id}')" style="flex: 1; padding: 10px; font-size: 0.85rem;"><i class="fas fa-times"></i> Reject</button>
+        </div>` : `<p style="font-size: 0.7rem; color: var(--text-muted);">
+            ${leave.approvedBy ? '✅ Approved by: ' + escapeHtml(leave.approvedBy) : ''}
+            ${leave.rejectedBy ? '❌ Rejected by: ' + escapeHtml(leave.rejectedBy) : ''}
+        </p>`}
+    </div>`;
 }
 
 // =====================================================
-// APPROVE / REJECT
+// APPROVE — with Auto "Leave" in attendance
 // =====================================================
 async function approveLeave(leaveId) {
     if (!confirm('ఈ Leave ని Approve చేయాలా?')) return;
-
     try {
-        await db.collection('leaveLetters').doc(leaveId).update({
+        const leaveRef = db.collection('leaveLetters').doc(leaveId);
+        const leaveDoc = await leaveRef.get();
+        const leave = leaveDoc.data();
+
+        await leaveRef.update({
             status: 'approved',
             approvedBy: 'HM',
             approvedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
+
+        // ✅ Auto "Leave" mark in attendance (student only)
+        if (leave.type === 'student' && leave.className && leave.fromDate && leave.toDate) {
+            await markAttendanceLeave(leave);
+        }
+
         UI.toast('✅ Leave Approve అయ్యింది!', 'success');
         await loadLeaves();
     } catch (error) {
@@ -205,10 +168,27 @@ async function approveLeave(leaveId) {
     }
 }
 
+async function markAttendanceLeave(leave) {
+    try {
+        const eduYear = getEduYear();
+        const start = new Date(leave.fromDate);
+        const end = new Date(leave.toDate);
+        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+            const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            const month = getMonthName(d);
+            const ref = db.collection('attendance').doc(eduYear).collection(leave.className).doc(month);
+            const doc = await ref.get();
+            const existing = doc.exists ? (doc.data().days || {}) : {};
+            const dayData = existing[dateStr] || {};
+            dayData[leave.studentId] = { status: 'leave', markedBy: 'System (auto)', markedAt: new Date().toISOString() };
+            await ref.set({ days: { ...existing, [dateStr]: dayData } }, { merge: true });
+        }
+    } catch (e) { console.warn('Auto leave mark error:', e); }
+}
+
 async function rejectLeave(leaveId) {
     const reason = prompt('Reject కారణం (optional):');
-    if (reason === null) return; // cancel
-
+    if (reason === null) return;
     try {
         await db.collection('leaveLetters').doc(leaveId).update({
             status: 'rejected',
@@ -224,9 +204,19 @@ async function rejectLeave(leaveId) {
     }
 }
 
-// =====================================================
-// HELPERS
-// =====================================================
+function getEduYear() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = now.getMonth() + 1;
+    if (m >= 6) return `${y}-${(y + 1).toString().slice(-2)}`;
+    return `${y - 1}-${y.toString().slice(-2)}`;
+}
+
+function getMonthName(date) {
+    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    return months[date.getMonth()];
+}
+
 function escapeHtml(text) {
     if (!text) return '';
     const div = document.createElement('div');
