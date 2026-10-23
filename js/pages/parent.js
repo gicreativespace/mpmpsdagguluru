@@ -1,4 +1,4 @@
-// js/pages/parent.js — v12.0 (Step 5.4 — Attendance C2 read)
+// js/pages/parent.js — v12.0 (Step 7.2 — Poster)
 let currentScreen = 'login';
 let parentSession = null;
 let currentParent = null;
@@ -8,6 +8,9 @@ let allDiaries = [];
 let allAttendance = [];
 let allMenu = null;
 let allLeaves = [];
+let currentSchoolData = null;
+let posterDataUrl = '';
+let currentPosterDiary = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
     const savedTheme = localStorage.getItem('dm_theme') || 'light';
@@ -55,6 +58,12 @@ async function decideScreen() {
     try {
         if (typeof authReady !== 'undefined') await Promise.race([authReady, new Promise(r => setTimeout(r, 3000))]);
 
+        // Load school data (for poster)
+        try {
+            const sd = await db.collection('schoolInfo').doc('main').get();
+            if (sd.exists) currentSchoolData = sd.data();
+        } catch (e) { console.warn('School data:', e); }
+
         const session = localStorage.getItem('dm_parent_session');
         if (session) {
             try {
@@ -90,7 +99,7 @@ async function decideScreen() {
         await loadClassesForAddChild();
         showScreen('login');
     } catch (error) {
-        console.error('Screen decision error:', error);
+        console.error('Screen decision:', error);
         showScreen('login');
     }
 }
@@ -306,19 +315,14 @@ async function loadDiaries() {
     } catch (e) { console.error('Load diaries:', e); }
 }
 
-// =====================================================
-// LOAD ATTENDANCE — C2 FORMAT
-// =====================================================
 async function loadAttendance() {
     try {
         if (!currentParent) return;
         const now = new Date();
         const eduYear = getEduYear();
         const month = getMonthName(now);
-
         const doc = await db.collection('attendance').doc(eduYear).collection(currentParent.className).doc(month).get();
         allAttendance = [];
-
         if (doc.exists && doc.data().approved === true) {
             const days = doc.data().days || {};
             Object.keys(days).sort().reverse().forEach(dateStr => {
@@ -329,7 +333,7 @@ async function loadAttendance() {
             });
         }
     } catch (error) {
-        console.error('Load attendance error:', error);
+        console.error('Load attendance:', error);
         allAttendance = [];
     }
 }
@@ -406,8 +410,10 @@ function renderDiaryContent(container) {
                 </div>
                 <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px;">📅 ${escapeHtml(d.date || '—')} • 👨‍🏫 ${escapeHtml(d.teacherName || 'Teacher')}</p>
                 <p style="font-size: 0.85rem; white-space: pre-wrap; margin-bottom: 6px;"><strong>Class Work:</strong> ${escapeHtml(d.classWork || d.content || '')}</p>
-                ${d.homework ? `<p style="font-size: 0.8rem; color: var(--primary); padding-top: 6px; border-top: 1px solid var(--border-color);"><strong>📝 Homework:</strong> ${escapeHtml(d.homework)}</p>` : ''}
-                ${d.approvedBy ? `<p style="font-size: 0.7rem; color: var(--success); margin-top: 6px;">✅ Approved by ${escapeHtml(d.approvedBy)}</p>` : ''}
+                ${d.homework ? `<p style="font-size: 0.8rem; color: var(--primary); padding-top: 6px; border-top: 1px solid var(--border-color); margin-bottom: 8px;"><strong>📝 Homework:</strong> ${escapeHtml(d.homework)}</p>` : ''}
+                <button class="btn btn-secondary btn-block" onclick="showPosterModal('${d.id}')" style="padding: 10px; font-size: 0.85rem;">
+                    <i class="fas fa-image" style="margin-right: 6px;"></i> 🎨 Poster Create
+                </button>
             </div>
         `).join('')}
     </div>`;
@@ -508,10 +514,8 @@ async function handleParentLeaveSubmit(e) {
     if (!reason) return showFormError(errorEl, 'కారణం రాయండి.');
     try {
         await db.collection('leaveLetters').add({
-            studentId: currentParent.studentId,
-            studentName: currentParent.studentName,
-            rollNumber: currentParent.rollNumber,
-            className: currentParent.className,
+            studentId: currentParent.studentId, studentName: currentParent.studentName,
+            rollNumber: currentParent.rollNumber, className: currentParent.className,
             fromDate, toDate, reason, status: 'pending', type: 'student',
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
@@ -522,6 +526,210 @@ async function handleParentLeaveSubmit(e) {
         console.error('Leave:', err);
         showFormError(errorEl, 'Submit విఫలం.');
     }
+}
+
+// =====================================================
+// POSTER (Step 7.2 — Canvas)
+// =====================================================
+function showPosterModal(diaryId) {
+    const d = allDiaries.find(x => x.id === diaryId);
+    if (!d) return;
+    currentPosterDiary = d;
+
+    const canvas = document.getElementById('posterCanvas');
+    drawPoster(canvas, d);
+    document.getElementById('posterModal').classList.add('active');
+}
+
+function closePosterModal() {
+    document.getElementById('posterModal').classList.remove('active');
+}
+
+function drawPoster(canvas, d) {
+    const W = 1080, H = 1350;
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d');
+
+    const schoolName = currentSchoolData?.schoolName || 'MPMP School';
+    const village = currentSchoolData?.village || '';
+    const mandal = currentSchoolData?.mandal || '';
+    const district = currentSchoolData?.district || '';
+    const hmName = currentSchoolData?.hmName || 'HM';
+
+    // White BG
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, W, H);
+
+    // Green header
+    ctx.fillStyle = '#1B5E20';
+    ctx.fillRect(0, 0, W, 220);
+
+    // School name
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 52px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(schoolName, W / 2, 90);
+
+    // Address
+    ctx.font = '28px Inter, sans-serif';
+    ctx.fillText(`${village} • ${mandal} • ${district}`, W / 2, 140);
+
+    // Gold accent
+    ctx.fillStyle = '#FFC107';
+    ctx.fillRect(0, 215, W, 10);
+
+    // Class
+    ctx.fillStyle = '#1B5E20';
+    ctx.font = 'bold 42px Inter, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(`${d.className}`, 60, 300);
+
+    // Subject + Date
+    ctx.font = '32px Inter, sans-serif';
+    ctx.fillStyle = '#555';
+    ctx.fillText(`${d.subject} • ${d.date}`, 60, 350);
+
+    // Gold underline
+    ctx.fillStyle = '#FFC107';
+    ctx.fillRect(60, 370, W - 120, 4);
+
+    // Class Work
+    let y = 430;
+    ctx.fillStyle = '#1B5E20';
+    ctx.font = 'bold 30px Inter, sans-serif';
+    ctx.fillText('✍️ CLASS WORK', 60, y);
+    y += 50;
+
+    ctx.fillStyle = '#212121';
+    ctx.font = '28px Inter, sans-serif';
+    y = wrapText(ctx, d.classWork || d.content || '—', 60, y, W - 120, 38);
+    y += 40;
+
+    // Home Work
+    if (d.homework) {
+        ctx.fillStyle = '#1B5E20';
+        ctx.font = 'bold 30px Inter, sans-serif';
+        ctx.fillText('🏠 HOME WORK', 60, y);
+        y += 50;
+
+        ctx.fillStyle = '#212121';
+        ctx.font = '28px Inter, sans-serif';
+        y = wrapText(ctx, d.homework, 60, y, W - 120, 38);
+    }
+
+    // Teacher name
+    ctx.fillStyle = '#555';
+    ctx.font = '26px Inter, sans-serif';
+    ctx.fillText(`👨‍🏫 ${d.teacherName || '—'}`, 60, H - 180);
+
+    // Footer
+    ctx.fillStyle = '#1B5E20';
+    ctx.fillRect(0, H - 100, W, 100);
+    ctx.fillStyle = '#FFC107';
+    ctx.font = 'bold 28px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Digital Manabadi — @valiass', W / 2, H - 50);
+
+    // HM Seal
+    drawSeal(ctx, W - 220, H - 280, hmName);
+
+    posterDataUrl = canvas.toDataURL('image/png');
+}
+
+function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+    const words = String(text).split(' ');
+    let line = '';
+    for (let n = 0; n < words.length; n++) {
+        const testLine = line + words[n] + ' ';
+        const metrics = ctx.measureText(testLine);
+        if (metrics.width > maxWidth && n > 0) {
+            ctx.fillText(line, x, y);
+            line = words[n] + ' ';
+            y += lineHeight;
+        } else {
+            line = testLine;
+        }
+    }
+    ctx.fillText(line, x, y);
+    return y + lineHeight;
+}
+
+function drawSeal(ctx, cx, cy, hmName) {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(-8 * Math.PI / 180);
+    const R = 110;
+
+    ctx.beginPath();
+    ctx.arc(0, 0, R, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(198, 40, 40, 0.85)';
+    ctx.lineWidth = 6;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(0, 0, R - 14, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(198, 40, 40, 0.6)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(198, 40, 40, 0.9)';
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 20px Inter, sans-serif';
+    ctx.fillText('HM', 0, -40);
+
+    ctx.font = 'bold 22px Inter, sans-serif';
+    ctx.fillText((hmName || 'HM').substring(0, 12), 0, -10);
+
+    ctx.font = 'bold 20px Inter, sans-serif';
+    ctx.fillText('APPROVED', 0, 25);
+
+    ctx.font = '16px Inter, sans-serif';
+    const today = new Date();
+    const dstr = `${today.getDate().toString().padStart(2, '0')}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getFullYear()}`;
+    ctx.fillText(dstr, 0, 55);
+
+    ctx.restore();
+}
+
+function downloadPoster() {
+    if (!posterDataUrl) {
+        UI.toast('Poster generate కాలేదు.', 'warning');
+        return;
+    }
+    const a = document.createElement('a');
+    a.href = posterDataUrl;
+    a.download = `diary-poster-${Date.now()}.png`;
+    a.click();
+    UI.toast('✅ Poster download అవుతోంది!', 'success');
+}
+
+function sharePosterWhatsApp() {
+    if (!currentPosterDiary) return;
+    const d = currentPosterDiary;
+    const schoolName = currentSchoolData?.schoolName || 'MPMP School';
+    const hmName = currentSchoolData?.hmName || 'HM';
+
+    const text = `🏫 *${schoolName}*
+
+📚 *${d.className} | ${d.subject}*
+📅 Date: ${d.date}
+
+✍️ *Class Work:*
+${d.classWork || d.content || '—'}
+
+🏠 *Home Work:*
+${d.homework || '—'}
+
+👨‍🏫 Teacher: ${d.teacherName || '—'}
+✅ Approved by: HM ${hmName}
+
+_— Digital Manabadi_`;
+
+    const url = 'https://wa.me/?text=' + encodeURIComponent(text);
+    window.open(url, '_blank');
+
+    UI.toast('💡 Poster image download చేసి WhatsApp లో attach చేయండి.', 'info', 5000);
 }
 
 // =====================================================
