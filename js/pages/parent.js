@@ -1,12 +1,27 @@
-// js/pages/parent.js
+// js/pages/parent.js — Digital Manabadi v12.0 (Step 2.5)
+// Changes:
+//  - Add Child flow (Class → Roll → DOB verify)
+//  - Multi-child session (children array)
+//  - Child select screen
+//  - No logout → "Go to Home"
+//  - Food Menu + Leave tabs (basic)
+//  - Red dot on notices
+//  - UI.initLayout() + custom back button
+// Poster create / Attendance C2 → Step 7
 
 let currentScreen = 'login';
-let currentParent = null;
+let parentSession = null; // { children: [], currentIndex: 0 }
+let currentParent = null; // current child details
 let currentTab = 'notices';
 let allNotices = [];
 let allDiaries = [];
 let allAttendance = [];
+let allMenu = null;
+let allLeaves = [];
 
+// =====================================================
+// INIT
+// =====================================================
 document.addEventListener('DOMContentLoaded', async () => {
     const savedTheme = localStorage.getItem('dm_theme') || 'light';
     document.body.setAttribute('data-theme', savedTheme);
@@ -16,49 +31,104 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.documentElement.style.setProperty('--base-font-size', savedSize + 'px');
     }
 
+    if (typeof UI !== 'undefined') {
+        UI.initLayout();
+    }
+
     setTimeout(async () => {
         const splash = document.getElementById('splash');
         const app = document.getElementById('parentApp');
         if (splash) splash.classList.add('hidden');
         if (app) app.classList.remove('hidden');
         setTimeout(() => splash && splash.remove(), 500);
+
+        addCustomBackButton();
         await decideScreen();
     }, 1200);
 
     bindEvents();
 });
 
+// =====================================================
+// CUSTOM BACK BUTTON
+// =====================================================
+function addCustomBackButton() {
+    const header = document.querySelector('.app-header');
+    if (!header) return;
+
+    let backBtn = header.querySelector('#backBtn');
+    if (backBtn) backBtn.remove();
+
+    backBtn = document.createElement('button');
+    backBtn.id = 'backBtn';
+    backBtn.className = 'icon-btn back-btn hidden';
+    backBtn.setAttribute('aria-label', 'Back');
+    backBtn.innerHTML = '<i class="fas fa-arrow-left"></i>';
+
+    backBtn.addEventListener('click', () => {
+        if (currentScreen === 'dashboard') {
+            showScreen('childSelect');
+        } else if (currentScreen === 'addChild') {
+            showScreen('login');
+        } else if (currentScreen === 'childSelect') {
+            showScreen('login');
+        } else if (currentScreen === 'login') {
+            // Login → auto "logoff" (clear session)
+            localStorage.removeItem('dm_parent_session');
+            window.location.href = 'index.html';
+        }
+    });
+
+    header.insertBefore(backBtn, header.firstChild);
+}
+
+// =====================================================
+// SCREEN DECISION
+// =====================================================
 async function decideScreen() {
     try {
         if (typeof authReady !== 'undefined') {
-            await Promise.race([
-                authReady,
-                new Promise(resolve => setTimeout(resolve, 3000))
-            ]);
+            await Promise.race([authReady, new Promise(r => setTimeout(r, 3000))]);
         }
 
         const session = localStorage.getItem('dm_parent_session');
         if (session) {
-            const s = JSON.parse(session);
-            currentParent = s;
-            await loadDashboardData();
-            showScreen('dashboard');
-            return;
+            try {
+                const s = JSON.parse(session);
+                if (s && Array.isArray(s.children) && s.children.length > 0) {
+                    parentSession = s;
+                    await loadClassesForAddChild();
+                    showScreen('childSelect');
+                    return;
+                }
+            } catch (e) {
+                localStorage.removeItem('dm_parent_session');
+            }
         }
 
         const schoolDoc = await db.collection('schoolInfo').doc('main').get();
         if (!schoolDoc.exists || !schoolDoc.data().isSetupComplete) {
-            UI.toast('⚠️ పాఠశాల సెటప్ పూర్తి కాలేదు. హెడ్‌మాస్టర్‌ని సంప్రదించండి.', 'warning', 5000);
+            UI.toast('⚠️ పాఠశాల సెటప్ పూర్తి కాలేదు.', 'warning', 5000);
             showScreen('login');
             return;
         }
-
         if (schoolDoc.data().sections?.parent !== true) {
             UI.toast('⚠️ Parent సెక్షన్ ఇంకా ఎనేబుల్ చేయలేదు.', 'warning', 5000);
             showScreen('login');
             return;
         }
 
+        // Check session again for "continue"
+        const existingSession = localStorage.getItem('dm_parent_session');
+        const continueBtn = document.getElementById('continueBtn');
+        if (existingSession && continueBtn) {
+            try {
+                const s = JSON.parse(existingSession);
+                if (s.children && s.children.length > 0) continueBtn.classList.remove('hidden');
+            } catch (e) {}
+        }
+
+        await loadClassesForAddChild();
         showScreen('login');
     } catch (error) {
         console.error('Screen decision error:', error);
@@ -66,26 +136,38 @@ async function decideScreen() {
     }
 }
 
+// =====================================================
+// SCREEN SWITCHER
+// =====================================================
 function showScreen(name) {
     currentScreen = name;
-    ['login', 'dashboard'].forEach(s => {
+    ['login', 'addChild', 'childSelect', 'dashboard'].forEach(s => {
         const el = document.getElementById('screen' + capitalize(s));
         if (el) el.classList.add('hidden');
     });
     const target = document.getElementById('screen' + capitalize(name));
     if (target) target.classList.remove('hidden');
 
-    // ✅ backBtn కంట్రోల్ తీసేయబడింది.
+    const backBtn = document.getElementById('backBtn');
+    if (backBtn) {
+        if (name === 'login') backBtn.classList.remove('hidden');
+        else backBtn.classList.remove('hidden');
+    }
 
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-        if (name === 'login') logoutBtn.classList.add('hidden');
-        else logoutBtn.classList.remove('hidden');
+    const goHomeBtn = document.getElementById('goHomeBtn');
+    if (goHomeBtn) {
+        if (name === 'dashboard' || name === 'childSelect') goHomeBtn.classList.remove('hidden');
+        else goHomeBtn.classList.add('hidden');
     }
 
     const title = document.getElementById('pageTitle');
     if (title) {
-        title.textContent = name === 'login' ? 'Parent Login' : 'Parent Dashboard';
+        title.textContent = {
+            login: 'Parent',
+            addChild: 'Add Child',
+            childSelect: 'My Children',
+            dashboard: 'Parent Dashboard'
+        }[name] || 'Parent';
     }
 }
 
@@ -93,128 +175,218 @@ function capitalize(s) {
     return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+// =====================================================
+// EVENT BINDINGS
+// =====================================================
 function bindEvents() {
     const themeBtn = document.getElementById('themeBtn');
     if (themeBtn) {
         themeBtn.addEventListener('click', () => {
             if (typeof UI !== 'undefined') UI.toggleTheme();
-            const t = document.body.getAttribute('data-theme');
-            themeBtn.textContent = t === 'dark' ? '☀️' : '🌙';
+            themeBtn.textContent = document.body.getAttribute('data-theme') === 'dark' ? '☀️' : '🌙';
         });
     }
 
-    // ✅ backBtn ఈవెంట్ తీసేయబడింది.
-
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', () => {
-            if (confirm('లాగౌట్ చేయాలా?')) {
-                localStorage.removeItem('dm_parent_session');
-                window.location.href = 'index.html';
-            }
-        });
-    }
-
-    const rollInput = document.getElementById('parentRollNumber');
+    const rollInput = document.getElementById('addChildRoll');
     if (rollInput) {
         rollInput.addEventListener('input', () => {
             rollInput.value = rollInput.value.replace(/\D/g, '').slice(0, 10);
         });
     }
 
-    const dobInput = document.getElementById('parentDob');
+    const dobInput = document.getElementById('addChildDob');
     if (dobInput) {
         dobInput.addEventListener('input', () => {
             dobInput.value = dobInput.value.replace(/\D/g, '').slice(0, 6);
         });
     }
 
-    const loginForm = document.getElementById('parentLoginForm');
-    if (loginForm) {
-        loginForm.addEventListener('submit', (e) => {
+    const addChildForm = document.getElementById('addChildForm');
+    if (addChildForm) {
+        addChildForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            handleParentLogin();
+            handleAddChild();
         });
     }
 }
 
-async function handleParentLogin() {
-    const rollNumber = document.getElementById('parentRollNumber').value.trim();
-    const dob = document.getElementById('parentDob').value.trim();
-    const errorEl = document.getElementById('parentLoginError');
-    const btn = document.getElementById('parentLoginBtn');
+// =====================================================
+// LOAD CLASSES (for Add Child dropdown)
+// =====================================================
+async function loadClassesForAddChild() {
+    const select = document.getElementById('addChildClass');
+    if (!select) return;
 
-    if (!rollNumber) return showFormError(errorEl, 'Roll Number నింపండి.');
-    if (!/^\d{6}$/.test(dob)) return showFormError(errorEl, 'పుట్టిన తేదీ ddmmyy ఫార్మాట్ లో 6 అంకెలు ఉండాలి.');
-
-    btn.disabled = true;
-    btn.textContent = 'లాగిన్ అవుతోంది...';
-    hideFormError(errorEl);
+    if (select.options.length > 1) return; // already loaded
 
     try {
-        const classroomsSnap = await db.collection('classrooms').get();
+        const snap = await db.collection('classrooms').get();
+        if (snap.empty) return;
 
-        let foundStudent = null;
-        let foundClassroom = null;
+        const classes = [];
+        snap.forEach(doc => {
+            const data = doc.data();
+            if (data.className) classes.push({ id: doc.id, className: data.className });
+        });
+        classes.sort((a, b) => (a.className || '').localeCompare(b.className || ''));
 
-        for (const classDoc of classroomsSnap.docs) {
-            const classData = classDoc.data();
-            const studentsSnap = await db.collection('classrooms')
-                .doc(classDoc.id)
-                .collection('students')
-                .where('rollNumber', '==', rollNumber)
-                .get();
-
-            for (const studentDoc of studentsSnap.docs) {
-                const studentData = studentDoc.data();
-                if (String(studentData.dob || '').trim() === dob) {
-                    foundStudent = { id: studentDoc.id, ...studentData };
-                    foundClassroom = { id: classDoc.id, ...classData };
-                    break;
-                }
-            }
-            if (foundStudent) break;
-        }
-
-        if (!foundStudent) {
-            return showFormError(errorEl, '❌ విద్యార్థి వివరాలు కనుగొనబడలేదు. Roll Number మరియు DOB చెక్ చేయండి.');
-        }
-
-        currentParent = {
-            studentId: foundStudent.id,
-            studentName: foundStudent.name || '—',
-            rollNumber: foundStudent.rollNumber || '—',
-            dob: foundStudent.dob || '—',
-            className: foundClassroom.className || '—',
-            classroomId: foundClassroom.id
-        };
-        localStorage.setItem('dm_parent_session', JSON.stringify(currentParent));
-
-        UI.toast('✅ Login విజయవంతమైంది!', 'success');
-        await loadDashboardData();
-        showScreen('dashboard');
-    } catch (error) {
-        console.error('Login error:', error);
-        showFormError(errorEl, 'నెట్‌వర్క్ లోపం. మళ్లీ ప్రయత్నించండి.');
-    } finally {
-        btn.disabled = false;
-        btn.textContent = 'లాగిన్';
+        select.innerHTML = '<option value="">-- Class ఎంచుకోండి --</option>';
+        classes.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = c.className;
+            select.appendChild(opt);
+        });
+    } catch (err) {
+        console.error('Load classes error:', err);
     }
 }
 
+// =====================================================
+// ADD CHILD
+// =====================================================
+async function handleAddChild() {
+    const classroomId = document.getElementById('addChildClass').value;
+    const rollNumber = document.getElementById('addChildRoll').value.trim();
+    const dob = document.getElementById('addChildDob').value.trim();
+    const errorEl = document.getElementById('addChildError');
+    const btn = document.getElementById('addChildBtn');
+
+    if (!classroomId) return showFormError(errorEl, 'Class ఎంచుకోండి.');
+    if (!rollNumber) return showFormError(errorEl, 'Roll Number నింపండి.');
+    if (!/^\d{6}$/.test(dob)) return showFormError(errorEl, 'DOB ddmmyy ఫార్మాట్ లో 6 అంకెలు ఉండాలి.');
+
+    btn.disabled = true;
+    btn.innerHTML = 'Verifying...';
+    hideFormError(errorEl);
+
+    try {
+        const classDoc = await db.collection('classrooms').doc(classroomId).get();
+        if (!classDoc.exists) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check-circle" style="margin-right: 8px;"></i> Child Confirm చేయండి';
+            return showFormError(errorEl, 'Class కనుగొనబడలేదు.');
+        }
+        const classData = classDoc.data();
+
+        const studentsSnap = await db.collection('classrooms')
+            .doc(classroomId)
+            .collection('students')
+            .where('rollNumber', '==', rollNumber)
+            .limit(1)
+            .get();
+
+        if (studentsSnap.empty) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check-circle" style="margin-right: 8px;"></i> Child Confirm చేయండి';
+            return showFormError(errorEl, '❌ ఈ Roll Number కనుగొనబడలేదు.');
+        }
+
+        const studentDoc = studentsSnap.docs[0];
+        const studentData = studentDoc.data();
+
+        if (String(studentData.dob || '').trim() !== dob) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check-circle" style="margin-right: 8px;"></i> Child Confirm చేయండి';
+            return showFormError(errorEl, '❌ DOB మ్యాచ్ అవ్వలేదు. మళ్లీ చెక్ చేయండి.');
+        }
+
+        // Session create/update
+        if (!parentSession) {
+            const existing = localStorage.getItem('dm_parent_session');
+            parentSession = existing ? JSON.parse(existing) : { children: [], currentIndex: 0 };
+            if (!parentSession.children) parentSession.children = [];
+        }
+
+        // Duplicate check
+        const dup = parentSession.children.find(c => c.studentId === studentDoc.id);
+        if (dup) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check-circle" style="margin-right: 8px;"></i> Child Confirm చేయండి';
+            return showFormError(errorEl, '⚠️ ఈ విద్యార్థి ఇప్పటికే add అయ్యారు.');
+        }
+
+        parentSession.children.push({
+            studentId: studentDoc.id,
+            studentName: studentData.name || '—',
+            rollNumber: studentData.rollNumber || rollNumber,
+            dob: studentData.dob,
+            className: classData.className,
+            classroomId: classroomId
+        });
+
+        localStorage.setItem('dm_parent_session', JSON.stringify(parentSession));
+
+        UI.toast(`✅ ${studentData.name || 'Child'} add అయ్యారు!`, 'success');
+        document.getElementById('addChildForm').reset();
+
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-check-circle" style="margin-right: 8px;"></i> Child Confirm చేయండి';
+
+        showScreen('childSelect');
+        renderChildrenList();
+    } catch (err) {
+        console.error('Add child error:', err);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-check-circle" style="margin-right: 8px;"></i> Child Confirm చేయండి';
+        showFormError(errorEl, 'నెట్‌వర్క్ లోపం. మళ్లీ ప్రయత్నించండి.');
+    }
+}
+
+// =====================================================
+// CHILD SELECT
+// =====================================================
+function renderChildrenList() {
+    const container = document.getElementById('childrenList');
+    if (!container) return;
+
+    if (!parentSession || !parentSession.children || parentSession.children.length === 0) {
+        container.innerHTML = `<p style="color: var(--text-muted); text-align: center;">ఇంకా పిల్లలు add చేయలేదు.</p>`;
+        return;
+    }
+
+    container.innerHTML = parentSession.children.map((child, index) => `
+        <div class="section-card" onclick="selectChild(${index})">
+            <div class="section-card-icon">👶</div>
+            <div class="section-card-body">
+                <div class="section-card-title">${escapeHtml(child.studentName)}</div>
+                <div class="section-card-sub">🏫 ${escapeHtml(child.className)} • Roll: ${escapeHtml(child.rollNumber)}</div>
+            </div>
+            <div class="section-card-arrow">›</div>
+        </div>
+    `).join('');
+}
+
+async function selectChild(index) {
+    if (!parentSession || !parentSession.children[index]) return;
+    parentSession.currentIndex = index;
+    localStorage.setItem('dm_parent_session', JSON.stringify(parentSession));
+    currentParent = parentSession.children[index];
+    await loadDashboardData();
+    showScreen('dashboard');
+}
+
+// =====================================================
+// DASHBOARD DATA
+// =====================================================
 async function loadDashboardData() {
     if (!currentParent) return;
 
     document.getElementById('parentWelcomeName').textContent = currentParent.studentName || '—';
-    document.getElementById('parentWelcomeClass').textContent = `🏫 ${currentParent.className} • Roll No: ${currentParent.rollNumber}`;
+    document.getElementById('parentWelcomeClass').textContent = `🏫 ${currentParent.className} • Roll: ${currentParent.rollNumber}`;
 
     await loadNotices();
     await loadDiaries();
     await loadAttendance();
+    await loadMenu();
+    await loadLeaves();
 
     switchTab('notices');
 }
 
+// =====================================================
+// LOAD NOTICES
+// =====================================================
 async function loadNotices() {
     try {
         const snapshot = await db.collection('noticeBoard').get();
@@ -227,11 +399,23 @@ async function loadNotices() {
             const tb = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
             return tb - ta;
         });
+
+        // Red dot check
+        if (allNotices.length > 0 && typeof UI !== 'undefined') {
+            const latest = allNotices[0];
+            const latestTime = latest?.createdAt?.toDate?.() || new Date();
+            if (UI.hasUnreadNotices(latestTime.toISOString())) {
+                document.getElementById('tabNotices')?.classList.add('notice-badge');
+            }
+        }
     } catch (error) {
         console.error('Load notices error:', error);
     }
 }
 
+// =====================================================
+// LOAD DIARIES
+// =====================================================
 async function loadDiaries() {
     try {
         const snapshot = await db.collection('diary')
@@ -240,7 +424,11 @@ async function loadDiaries() {
 
         allDiaries = [];
         snapshot.forEach(doc => {
-            allDiaries.push({ id: doc.id, ...doc.data() });
+            const d = doc.data();
+            // Parent కి approved only చూపించు
+            if (d.isApproved === true) {
+                allDiaries.push({ id: doc.id, ...d });
+            }
         });
         allDiaries.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
     } catch (error) {
@@ -248,8 +436,12 @@ async function loadDiaries() {
     }
 }
 
+// =====================================================
+// LOAD ATTENDANCE
+// =====================================================
 async function loadAttendance() {
     try {
+        // Old format (Step 7 లో C2 కి మారుతుంది)
         const snapshot = await db.collection('attendance')
             .where('studentId', '==', currentParent.studentId)
             .get();
@@ -265,15 +457,65 @@ async function loadAttendance() {
     }
 }
 
+// =====================================================
+// LOAD MENU
+// =====================================================
+async function loadMenu() {
+    try {
+        const today = new Date();
+        const dateStr = today.getFullYear() + '-' +
+                        String(today.getMonth() + 1).padStart(2, '0') + '-' +
+                        String(today.getDate()).padStart(2, '0');
+
+        const doc = await db.collection('menu').doc(dateStr).get();
+        allMenu = doc.exists ? doc.data() : null;
+    } catch (error) {
+        console.error('Load menu error:', error);
+        allMenu = null;
+    }
+}
+
+// =====================================================
+// LOAD LEAVES
+// =====================================================
+async function loadLeaves() {
+    try {
+        const snapshot = await db.collection('leaveLetters')
+            .where('studentId', '==', currentParent.studentId)
+            .get();
+
+        allLeaves = [];
+        snapshot.forEach(doc => {
+            allLeaves.push({ id: doc.id, ...doc.data() });
+        });
+        allLeaves.sort((a, b) => {
+            const ta = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+            const tb = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+            return tb - ta;
+        });
+    } catch (error) {
+        console.error('Load leaves error:', error);
+        allLeaves = [];
+    }
+}
+
+// =====================================================
+// TABS
+// =====================================================
 function switchTab(tab) {
     currentTab = tab;
 
-    ['notices', 'diary', 'attendance'].forEach(t => {
+    ['notices', 'diary', 'attendance', 'menu', 'leave'].forEach(t => {
         const btn = document.getElementById('tab' + capitalize(t));
         if (btn) {
             btn.className = t === tab ? 'btn btn-primary' : 'btn btn-outline';
         }
     });
+
+    if (tab === 'notices' && typeof UI !== 'undefined') {
+        UI.markNoticesRead();
+        document.getElementById('tabNotices')?.classList.remove('notice-badge');
+    }
 
     renderContent();
 }
@@ -282,15 +524,16 @@ function renderContent() {
     const container = document.getElementById('parentContent');
     if (!container) return;
 
-    if (currentTab === 'notices') {
-        renderNoticesContent(container);
-    } else if (currentTab === 'diary') {
-        renderDiaryContent(container);
-    } else if (currentTab === 'attendance') {
-        renderAttendanceContent(container);
-    }
+    if (currentTab === 'notices') renderNoticesContent(container);
+    else if (currentTab === 'diary') renderDiaryContent(container);
+    else if (currentTab === 'attendance') renderAttendanceContent(container);
+    else if (currentTab === 'menu') renderMenuContent(container);
+    else if (currentTab === 'leave') renderLeaveContent(container);
 }
 
+// =====================================================
+// RENDER — NOTICES
+// =====================================================
 function renderNoticesContent(container) {
     if (allNotices.length === 0) {
         container.innerHTML = emptyState('📢', 'ఇంకా నోటీసులు లేవు');
@@ -314,9 +557,12 @@ function renderNoticesContent(container) {
     `;
 }
 
+// =====================================================
+// RENDER — DIARY (Approved only)
+// =====================================================
 function renderDiaryContent(container) {
     if (allDiaries.length === 0) {
-        container.innerHTML = emptyState('📖', 'ఇంకా Diary entries లేవు');
+        container.innerHTML = emptyState('📖', 'ఇంకా Approved Diary entries లేవు');
         return;
     }
 
@@ -327,19 +573,21 @@ function renderDiaryContent(container) {
                 <div style="padding: var(--space-md); margin-bottom: var(--space-sm); background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                         <h4 style="font-size: 0.95rem;">📚 ${escapeHtml(d.subject || '—')}</h4>
-                        <span style="font-size: 0.7rem; padding: 2px 8px; border-radius: 12px; background: ${d.isApproved ? 'var(--success)' : '#F9A825'}; color: #fff; font-weight: 600;">
-                            ${d.isApproved ? '✅' : '⏳'}
-                        </span>
+                        <span class="status-badge status-approved">✅ Approved</span>
                     </div>
                     <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px;">📅 ${escapeHtml(d.date || '—')} • 👨‍🏫 ${escapeHtml(d.teacherName || 'Teacher')}</p>
-                    <p style="font-size: 0.85rem; white-space: pre-wrap; margin-bottom: 6px;">${escapeHtml(d.content || '')}</p>
+                    <p style="font-size: 0.85rem; white-space: pre-wrap; margin-bottom: 6px;"><strong>Class Work:</strong> ${escapeHtml(d.classWork || d.content || '')}</p>
                     ${d.homework ? `<p style="font-size: 0.8rem; color: var(--primary); padding-top: 6px; border-top: 1px solid var(--border-color);"><strong>📝 Homework:</strong> ${escapeHtml(d.homework)}</p>` : ''}
+                    ${d.approvedBy ? `<p style="font-size: 0.7rem; color: var(--success); margin-top: 6px;">✅ Approved by ${escapeHtml(d.approvedBy)}</p>` : ''}
                 </div>
             `).join('')}
         </div>
     `;
 }
 
+// =====================================================
+// RENDER — ATTENDANCE
+// =====================================================
 function renderAttendanceContent(container) {
     if (allAttendance.length === 0) {
         container.innerHTML = emptyState('✅', 'ఇంకా Attendance records లేవు');
@@ -348,40 +596,197 @@ function renderAttendanceContent(container) {
 
     const presentCount = allAttendance.filter(a => a.status === 'present').length;
     const absentCount = allAttendance.filter(a => a.status === 'absent').length;
+    const leaveCount = allAttendance.filter(a => a.status === 'leave').length;
     const total = allAttendance.length;
     const percentage = total > 0 ? Math.round((presentCount / total) * 100) : 0;
 
     container.innerHTML = `
         <div class="card">
             <h3 class="card-title" style="font-size: 1.1rem; text-align: left; margin-bottom: var(--space-md);">✅ Attendance</h3>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-sm); margin-bottom: var(--space-md);">
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: var(--space-xs); margin-bottom: var(--space-md);">
                 <div style="text-align: center; padding: var(--space-sm); background: var(--bg-color); border-radius: var(--radius-sm);">
-                    <p style="font-size: 1.5rem; font-weight: 700; color: var(--success);">${presentCount}</p>
-                    <p style="font-size: 0.7rem; color: var(--text-muted);">Present</p>
+                    <p style="font-size: 1.3rem; font-weight: 700; color: var(--success);">${presentCount}</p>
+                    <p style="font-size: 0.65rem; color: var(--text-muted);">Present</p>
                 </div>
                 <div style="text-align: center; padding: var(--space-sm); background: var(--bg-color); border-radius: var(--radius-sm);">
-                    <p style="font-size: 1.5rem; font-weight: 700; color: var(--danger);">${absentCount}</p>
-                    <p style="font-size: 0.7rem; color: var(--text-muted);">Absent</p>
+                    <p style="font-size: 1.3rem; font-weight: 700; color: var(--danger);">${absentCount}</p>
+                    <p style="font-size: 0.65rem; color: var(--text-muted);">Absent</p>
                 </div>
                 <div style="text-align: center; padding: var(--space-sm); background: var(--bg-color); border-radius: var(--radius-sm);">
-                    <p style="font-size: 1.5rem; font-weight: 700; color: var(--primary);">${percentage}%</p>
-                    <p style="font-size: 0.7rem; color: var(--text-muted);">Percentage</p>
+                    <p style="font-size: 1.3rem; font-weight: 700; color: #E65100;">${leaveCount}</p>
+                    <p style="font-size: 0.65rem; color: var(--text-muted);">Leave</p>
+                </div>
+                <div style="text-align: center; padding: var(--space-sm); background: var(--bg-color); border-radius: var(--radius-sm);">
+                    <p style="font-size: 1.3rem; font-weight: 700; color: var(--primary);">${percentage}%</p>
+                    <p style="font-size: 0.65rem; color: var(--text-muted);">%</p>
                 </div>
             </div>
 
-            ${allAttendance.slice(0, 30).map(a => `
+            ${allAttendance.slice(0, 30).map(a => {
+                let badgeClass = 'status-pending', statusText = '—';
+                if (a.status === 'present') { badgeClass = 'status-approved'; statusText = '✅ Present'; }
+                else if (a.status === 'absent') { badgeClass = 'status-rejected'; statusText = '❌ Absent'; }
+                else if (a.status === 'leave') { badgeClass = 'status-leave'; statusText = '📅 Leave'; }
+
+                return `
                 <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-sm) 0; border-bottom: 1px solid var(--border-color);">
                     <span style="font-size: 0.85rem;">📅 ${escapeHtml(a.date || '—')}</span>
-                    <span style="font-size: 0.75rem; padding: 2px 10px; border-radius: 12px; font-weight: 600; background: ${a.status === 'present' ? 'var(--success)' : 'var(--danger)'}; color: #fff;">
-                        ${a.status === 'present' ? '✅ Present' : '❌ Absent'}
-                    </span>
+                    <span class="status-badge ${badgeClass}">${statusText}</span>
                 </div>
-            `).join('')}
+                `;
+            }).join('')}
         </div>
     `;
 }
 
+// =====================================================
+// RENDER — MENU
+// =====================================================
+function renderMenuContent(container) {
+    if (!allMenu) {
+        container.innerHTML = emptyState('🍽️', 'ఈరోజు మెనూ ఇంకా సెట్ చేయలేదు');
+        return;
+    }
+
+    const meals = [
+        { key: 'breakfast', icon: '🌅', label: 'Breakfast' },
+        { key: 'lunch', icon: '☀️', label: 'Lunch' },
+        { key: 'snacks', icon: '🍪', label: 'Snacks' }
+    ];
+
+    let html = '';
+    meals.forEach(meal => {
+        const items = allMenu[meal.key];
+        if (items && items.length > 0) {
+            html += `
+                <div style="background: var(--bg-color); padding: var(--space-md); border-radius: var(--radius-md); margin-bottom: var(--space-sm); border-left: 4px solid #F57C00;">
+                    <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: var(--space-sm);">${meal.icon} ${meal.label}</h4>
+                    <ul style="list-style: none; padding: 0; margin: 0;">
+                        ${items.map(item => `<li style="padding: 4px 0; font-size: 0.9rem;">🍽️ ${escapeHtml(item)}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+    });
+
+    const sponsor = allMenu.sponsor;
+    if (sponsor && sponsor.item) {
+        html += `
+            <div class="sponsor-box">
+                <div class="sponsor-title">🎁 Sponsor</div>
+                <p style="font-size: 0.85rem;">${escapeHtml(sponsor.donor || '—')} — ${escapeHtml(sponsor.item)}</p>
+            </div>
+        `;
+    }
+
+    if (!html) html = emptyState('🍽️', 'ఈరోజు మెనూ ఇంకా సెట్ చేయలేదు');
+
+    container.innerHTML = `
+        <div class="card">
+            <h3 class="card-title" style="font-size: 1.1rem; text-align: left; margin-bottom: var(--space-md);">🍽️ ఈరోజు మెనూ</h3>
+            ${html}
+        </div>
+    `;
+}
+
+// =====================================================
+// RENDER — LEAVE
+// =====================================================
+function renderLeaveContent(container) {
+    let html = `
+        <div class="card">
+            <h3 class="card-title" style="font-size: 1.1rem; text-align: left; margin-bottom: var(--space-md);">📅 Leave Apply</h3>
+            <form id="parentLeaveForm" class="form" novalidate>
+                <div class="field">
+                    <label for="parentLeaveFrom">From Date</label>
+                    <input type="date" id="parentLeaveFrom" required />
+                </div>
+                <div class="field">
+                    <label for="parentLeaveTo">To Date</label>
+                    <input type="date" id="parentLeaveTo" required />
+                </div>
+                <div class="field">
+                    <label for="parentLeaveReason">కారణం</label>
+                    <textarea id="parentLeaveReason" required rows="3" placeholder="సెలవు కారణం..." style="height: auto; min-height: 80px; padding: 12px 16px; resize: vertical;"></textarea>
+                </div>
+                <p id="parentLeaveError" class="form-error hidden" role="alert"></p>
+                <button type="submit" class="btn btn-primary btn-block">
+                    <i class="fas fa-paper-plane" style="margin-right: 8px;"></i> Leave Submit
+                </button>
+            </form>
+        </div>
+    `;
+
+    if (allLeaves.length > 0) {
+        html += `
+            <div class="card">
+                <h3 class="card-title" style="font-size: 1.1rem; text-align: left; margin-bottom: var(--space-md);">📋 My Leaves</h3>
+                ${allLeaves.map(l => {
+                    let badgeClass = 'status-pending', statusText = '⏳ Pending';
+                    if (l.status === 'approved') { badgeClass = 'status-approved'; statusText = '✅ Approved'; }
+                    else if (l.status === 'rejected') { badgeClass = 'status-rejected'; statusText = '❌ Rejected'; }
+
+                    return `
+                    <div style="padding: var(--space-md); margin-bottom: var(--space-sm); background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                            <span style="font-size: 0.85rem; font-weight: 600;">📅 ${escapeHtml(l.fromDate || '')} → ${escapeHtml(l.toDate || '')}</span>
+                            <span class="status-badge ${badgeClass}">${statusText}</span>
+                        </div>
+                        <p style="font-size: 0.8rem; color: var(--text-muted);">${escapeHtml(l.reason || '')}</p>
+                    </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    }
+
+    container.innerHTML = html;
+
+    // Bind leave form
+    const form = document.getElementById('parentLeaveForm');
+    if (form) {
+        form.addEventListener('submit', handleParentLeaveSubmit);
+    }
+}
+
+async function handleParentLeaveSubmit(e) {
+    e.preventDefault();
+    const fromDate = document.getElementById('parentLeaveFrom').value;
+    const toDate = document.getElementById('parentLeaveTo').value;
+    const reason = document.getElementById('parentLeaveReason').value.trim();
+    const errorEl = document.getElementById('parentLeaveError');
+
+    if (!fromDate || !toDate) return showFormError(errorEl, 'From/To తేదీలు ఎంచుకోండి.');
+    if (new Date(toDate) < new Date(fromDate)) return showFormError(errorEl, 'To Date, From Date కన్నా తర్వాత ఉండాలి.');
+    if (!reason) return showFormError(errorEl, 'కారణం రాయండి.');
+
+    try {
+        await db.collection('leaveLetters').add({
+            studentId: currentParent.studentId,
+            studentName: currentParent.studentName,
+            rollNumber: currentParent.rollNumber,
+            className: currentParent.className,
+            fromDate: fromDate,
+            toDate: toDate,
+            reason: reason,
+            status: 'pending',
+            type: 'student',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        UI.toast('✅ Leave విజయవంతంగా submit అయ్యింది!', 'success');
+        await loadLeaves();
+        renderContent();
+    } catch (err) {
+        console.error('Parent leave error:', err);
+        showFormError(errorEl, 'Submit విఫలమైంది. మళ్లీ ప్రయత్నించండి.');
+    }
+}
+
+// =====================================================
+// HELPERS
+// =====================================================
 function emptyState(icon, message) {
     return `
         <div class="card" style="text-align: center; padding: var(--space-xl);">
