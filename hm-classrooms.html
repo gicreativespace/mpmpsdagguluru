@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=15" />
 </head>
 <body class="page-classrooms">
 
@@ -27,9 +27,6 @@
 
     <!-- Header -->
     <header class="app-header">
-      <button id="backBtn" class="icon-btn back-btn" aria-label="Back" title="వెనక్కి">
-        <i class="fas fa-arrow-left"></i>
-      </button>
       <h1 id="pageTitle" class="app-title">Classrooms</h1>
       <button id="logoutBtn" class="icon-btn logout-btn" aria-label="Logout" title="లాగౌట్">
         <i class="fas fa-sign-out-alt"></i>
@@ -116,8 +113,8 @@
           </div>
 
           <div class="field">
-            <label for="studentDob">పుట్టిన తేదీ (ddmmyy) — ఐచ్ఛికం</label>
-            <input type="text" id="studentDob" maxlength="6" inputmode="numeric" autocomplete="off" placeholder="ఉదా: 150190" />
+            <label for="studentDob">పుట్టిన తేదీ (ddmmyy)</label>
+            <input type="text" id="studentDob" maxlength="6" inputmode="numeric" required autocomplete="off" placeholder="ఉదా: 150190" />
           </div>
 
           <div class="field">
@@ -157,6 +154,6 @@
   <script src="js/config.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/auth.js"></script>
-  <script src="js/pages/hm-classrooms.js"></script>
+  <script src="js/pages/hm-classrooms.js?v=15"></script>
 </body>
 </html>
