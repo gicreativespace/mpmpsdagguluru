@@ -1,4 +1,10 @@
-// js/pages/hm-dashboard.js
+// js/pages/hm-dashboard.js — Digital Manabadi v12.0 (Step 4.1)
+// Changes:
+//  - Welcome "గారు" + time greeting
+//  - Red dot on Notice card
+//  - Back button fixed (index.html కాదు → HM dashboard = no back)
+//  - Custom header (no UI.initLayout)
+//  - New section cards
 
 let currentSchoolData = null;
 
@@ -14,7 +20,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.documentElement.style.setProperty('--base-font-size', savedSize + 'px');
     }
 
-    // Session చెక్
+    // Session check
     const session = Auth.checkAuth('headmaster');
     if (!session) return;
 
@@ -25,6 +31,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (app) app.classList.remove('hidden');
         setTimeout(() => splash && splash.remove(), 500);
         await loadDashboardData();
+        await checkUnreadNotices();
     }, 1200);
 
     bindEvents();
@@ -50,9 +57,21 @@ async function loadDashboardData() {
 
         currentSchoolData = doc.data();
 
-        // Welcome
-        document.getElementById('welcomeHmName').textContent = currentSchoolData.hmName || '—';
-        document.getElementById('welcomeSchoolName').textContent = currentSchoolData.schoolName || '—';
+        // Welcome greeting + "గారు"
+        const hour = new Date().getHours();
+        let greeting = '👋 స్వాగతం';
+        if (hour < 12) greeting = '🌅 శుభోదయం';
+        else if (hour < 17) greeting = '☀️ శుభ మధ్యాహ్నం';
+        else greeting = '🌙 శుభ సాయంత్రం';
+
+        const greetingEl = document.getElementById('welcomeGreeting');
+        if (greetingEl) greetingEl.textContent = greeting;
+
+        const hmNameEl = document.getElementById('welcomeHmName');
+        if (hmNameEl) hmNameEl.textContent = `${currentSchoolData.hmName || '—'} గారు`;
+
+        const schoolNameEl = document.getElementById('welcomeSchoolName');
+        if (schoolNameEl) schoolNameEl.textContent = currentSchoolData.schoolName || '—';
 
         // School Info
         document.getElementById('infoSchool').textContent = currentSchoolData.schoolName || '—';
@@ -74,6 +93,34 @@ async function loadDashboardData() {
 }
 
 // =====================================================
+// RED DOT — Unread Notices
+// =====================================================
+async function checkUnreadNotices() {
+    try {
+        if (typeof UI === 'undefined') return;
+
+        const snap = await db.collection('noticeBoard')
+            .orderBy('createdAt', 'desc')
+            .limit(1)
+            .get();
+
+        if (snap.empty) return;
+
+        const latest = snap.docs[0].data();
+        const latestTime = latest.createdAt?.toDate
+            ? latest.createdAt.toDate()
+            : new Date(latest.createdAt || Date.now());
+
+        if (UI.hasUnreadNotices(latestTime.toISOString())) {
+            const card = document.getElementById('cardNotice');
+            if (card) card.classList.add('notice-badge');
+        }
+    } catch (err) {
+        console.warn('Notice check skipped:', err.message);
+    }
+}
+
+// =====================================================
 // EVENT BINDINGS
 // =====================================================
 function bindEvents() {
@@ -81,22 +128,16 @@ function bindEvents() {
     if (themeBtn) {
         themeBtn.addEventListener('click', () => {
             if (typeof UI !== 'undefined') UI.toggleTheme();
-            const t = document.body.getAttribute('data-theme');
-            themeBtn.textContent = t === 'dark' ? '☀️' : '🌙';
-        });
-    }
-
-    const backBtn = document.getElementById('backBtn');
-    if (backBtn) {
-        backBtn.addEventListener('click', () => {
-            window.location.href = 'headmaster.html';
+            themeBtn.textContent = document.body.getAttribute('data-theme') === 'dark' ? '☀️' : '🌙';
         });
     }
 
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
-            if (confirm('లాగౌట్ చేయాలా?')) {
+            if (typeof UI !== 'undefined' && UI.confirmLogout) {
+                UI.confirmLogout();
+            } else if (typeof Auth !== 'undefined') {
                 Auth.logout();
             }
         });
@@ -117,8 +158,6 @@ function bindEvents() {
 async function handleSectionToggle(el) {
     const section = el.getAttribute('data-section');
     const isEnabled = el.checked;
-
-    // Disable while saving
     el.disabled = true;
 
     try {
@@ -128,14 +167,13 @@ async function handleSectionToggle(el) {
 
         UI.toast(`✅ ${getSectionLabel(section)} ${isEnabled ? 'ఎనేబుల్' : 'డిసేబుల్'} అయ్యింది!`, 'success', 2000);
 
-        // Update currentSchoolData
         if (!currentSchoolData.sections) currentSchoolData.sections = {};
         currentSchoolData.sections[section] = isEnabled;
 
     } catch (error) {
         console.error('Toggle error:', error);
         UI.toast('❌ మార్పు సేవ్ అవ్వలేదు.', 'error');
-        el.checked = !isEnabled; // revert
+        el.checked = !isEnabled;
     } finally {
         el.disabled = false;
     }
