@@ -1,5 +1,5 @@
 // sw.js — Digital Manabadi Service Worker (Auto Update)
-const CACHE_NAME = 'mpmp-cache-v20'; // ⚠️ ప్రతిసారి కోడ్ మార్చినప్పుడు ఈ నంబర్ పెంచండి (v6, v7...)
+const CACHE_NAME = 'mpmp-cache-v21'; // ⚠️ ప్రతిసారి కోడ్ మార్చినప్పుడు ఈ నంబర్ పెంచండి
 
 const urlsToCache = [
   './',
@@ -33,7 +33,7 @@ const urlsToCache = [
 ];
 
 // =====================================================
-// INSTALL — కొత్త ఫైల్స్ క్యాష్ చేయి + వెంటనే యాక్టివేట్ అవ్వు
+// INSTALL
 // =====================================================
 self.addEventListener('install', event => {
   console.log('🔧 SW installing:', CACHE_NAME);
@@ -45,15 +45,12 @@ self.addEventListener('install', event => {
           console.warn('⚠️ Some files failed to cache:', err);
         });
       })
-      .then(() => {
-        // ✅ కొత్త SW వెయిటింగ్ లో ఉండకుండా వెంటనే యాక్టివేట్ అవ్వడానికి
-        return self.skipWaiting();
-      })
+      .then(() => self.skipWaiting())
   );
 });
 
 // =====================================================
-// ACTIVATE — పాత క్యాష్ క్లియర్ చేయి + పేజీలను వెంటనే నియంత్రించు
+// ACTIVATE
 // =====================================================
 self.addEventListener('activate', event => {
   console.log('🚀 SW activating:', CACHE_NAME);
@@ -67,17 +64,19 @@ self.addEventListener('activate', event => {
           }
         })
       );
-    }).then(() => {
-      // ✅ ఇప్పటికే తెరిచి ఉన్న పేజీలను కూడా కొత్త SW నియంత్రణలోకి తీసుకోవడానికి
-      return self.clients.claim();
-    })
+    }).then(() => self.clients.claim())
   );
 });
 
 // =====================================================
-// FETCH — Network First (HTML), Cache First (Assets)
+// FETCH
 // =====================================================
 self.addEventListener('fetch', event => {
+  // ✅ GET కాకుండా (POST/PUT/DELETE) → network only
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
   const url = new URL(event.request.url);
 
   // Firebase / Google APIs / CDN → network only
@@ -89,7 +88,7 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // HTML → Network First (ఎప్పుడూ కొత్త ఫైల్ ని తీసుకురావడానికి ప్రయత్నించు)
+  // HTML → Network First
   if (event.request.headers.get('accept')?.includes('text/html')) {
     event.respondWith(
       fetch(event.request)
@@ -103,7 +102,7 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // CSS/JS/Images → Cache First (వేగంగా లోడ్ అవ్వడానికి)
+  // CSS/JS/Images → Cache First
   event.respondWith(
     caches.match(event.request)
       .then(response => response || fetch(event.request))
@@ -111,7 +110,7 @@ self.addEventListener('fetch', event => {
 });
 
 // =====================================================
-// MESSAGE — పేజీ నుండి కమాండ్ వచ్చినప్పుడు SW అప్‌డేట్ చేయి
+// MESSAGE
 // =====================================================
 self.addEventListener('message', event => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
