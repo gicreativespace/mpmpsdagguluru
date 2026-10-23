@@ -10,11 +10,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=6" />
+  <link rel="stylesheet" href="style.css?v=25" />
 </head>
 <body class="page-teacher">
 
-  <!-- SPLASH -->
   <div id="splash" class="splash-screen">
     <div class="splash-logo" style="font-size:4rem;">👨‍🏫</div>
     <h1 class="splash-title">Teacher</h1>
@@ -37,7 +36,6 @@
         <div class="login-icon">🔐</div>
         <h2 class="card-title">Teacher Login</h2>
         <p class="card-desc">ఫోన్ నంబర్ మరియు Master PIN నమోదు చేయండి</p>
-
         <form id="teacherLoginForm" class="form" novalidate>
           <div class="field">
             <label for="teacherPhone">Phone Number</label>
@@ -75,7 +73,6 @@
 
     <!-- SCREEN 3: DASHBOARD -->
     <section id="screenDashboard" class="screen hidden">
-      <!-- Welcome -->
       <div class="welcome-banner">
         <div class="welcome-greeting" id="greetingText">👋 స్వాగతం</div>
         <div class="welcome-name" id="teacherWelcomeName">— గారు</div>
@@ -85,7 +82,6 @@
         </div>
       </div>
 
-      <!-- Assigned Classes & Subjects -->
       <div class="card">
         <h3 class="card-title" style="font-size: 1.1rem; text-align: left;">📚 నా Classes & Subjects</h3>
         <div id="assignedClassesList" style="margin-top: var(--space-md);">
@@ -93,7 +89,6 @@
         </div>
       </div>
 
-      <!-- I am on Leave Toggle -->
       <div class="card">
         <div class="toggle-row">
           <div class="toggle-row-left">
@@ -106,11 +101,10 @@
           </label>
         </div>
         <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: var(--space-sm); padding: 0 var(--space-sm);">
-          ON చేస్తే ఈరోజు Diary లో "Teacher on Leave" అని కనిపిస్తుంది. రేపు auto OFF అవుతుంది.
+          ON చేస్తే ఈరోజు Diary లో "Teacher on Leave" అని కనిపిస్తుంది. రేపు auto OFF.
         </p>
       </div>
 
-      <!-- Quick Actions -->
       <div class="card">
         <h3 class="card-title" style="font-size: 1.1rem; text-align: left;">⚡ త్వరిత చర్యలు</h3>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); margin-top: var(--space-md);">
@@ -128,7 +122,6 @@
         </button>
       </div>
 
-      <!-- My Diaries -->
       <div class="card">
         <h3 class="card-title" style="font-size: 1.1rem; text-align: left;">📖 నా Diary Entries</h3>
         <div id="myDiariesList" style="margin-top: var(--space-md);">
@@ -217,7 +210,50 @@
       </div>
     </section>
 
-    <!-- FOOTER -->
+    <!-- SCREEN 7: EDIT DIARY (Step 5.5 — NEW) -->
+    <section id="screenEditDiary" class="screen hidden">
+      <div class="card">
+        <h2 class="card-title">✏️ Diary Edit</h2>
+        <p class="card-desc" id="editDiaryInfo">HM approve కాకముందు మాత్రమే edit చేయవచ్చు</p>
+
+        <div id="editDiaryWarning" class="form-error hidden" style="margin-bottom: var(--space-md);"></div>
+
+        <form id="editDiaryForm" class="form" novalidate>
+          <div class="field">
+            <label>Class</label>
+            <input type="text" id="editDiaryClass" readonly style="background: var(--surface); font-weight: 600;" />
+          </div>
+          <div class="field">
+            <label>Subject</label>
+            <input type="text" id="editDiarySubject" readonly style="background: var(--surface); font-weight: 600;" />
+          </div>
+          <div class="field">
+            <label>Date</label>
+            <input type="text" id="editDiaryDate" readonly style="background: var(--surface); font-weight: 600;" />
+          </div>
+
+          <div class="field">
+            <label for="editClassWork">Class Work</label>
+            <textarea id="editClassWork" rows="4" required style="height: auto; min-height: 100px; padding: 10px; resize: vertical;"></textarea>
+          </div>
+          <div class="field">
+            <label for="editHomework">Home Work</label>
+            <textarea id="editHomework" rows="3" style="height: auto; min-height: 80px; padding: 10px; resize: vertical;"></textarea>
+          </div>
+
+          <p id="editDiaryError" class="form-error hidden" role="alert"></p>
+
+          <button type="submit" id="editDiarySubmitBtn" class="btn btn-primary btn-block">
+            <i class="fas fa-save" style="margin-right: 8px;"></i> Save Changes
+          </button>
+        </form>
+
+        <button type="button" class="link-btn" onclick="showScreen('dashboard')">
+          <i class="fas fa-arrow-left"></i> వెనక్కి
+        </button>
+      </div>
+    </section>
+
     <footer class="app-footer">
       An initiative of <span class="valiass-link" onclick="UI.showContact()">@valiass</span> team
     </footer>
@@ -225,15 +261,12 @@
 
   <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
-  <!-- FIREBASE -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-
-  <!-- APP -->
   <script src="js/config.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/auth.js"></script>
-  <script src="js/pages/teacher.js?v=6"></script>
+  <script src="js/pages/teacher.js?v=25"></script>
 </body>
 </html>
