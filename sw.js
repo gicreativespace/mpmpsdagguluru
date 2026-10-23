@@ -1,5 +1,5 @@
 // sw.js — Digital Manabadi Service Worker (v29 — Final)
-const CACHE_NAME = 'mpmp-cache-v29';
+const CACHE_NAME = 'mpmp-cache-v35';
 
 const urlsToCache = [
   './',
