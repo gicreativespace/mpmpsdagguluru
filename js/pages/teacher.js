@@ -1,4 +1,4 @@
-// js/pages/teacher.js — v12.0 (Step 5.5 — Diary Edit)
+// js/pages/teacher.js — v12.0 (Step 5.6 — Announcement)
 let currentScreen = 'login';
 let currentTeacher = null;
 let allTeacherDiaries = [];
@@ -36,7 +36,7 @@ function addCustomBackButton() {
     backBtn.className = 'icon-btn back-btn hidden';
     backBtn.innerHTML = '<i class="fas fa-arrow-left"></i>';
     backBtn.addEventListener('click', () => {
-        if (currentScreen === 'diary' || currentScreen === 'attendance' || currentScreen === 'leave' || currentScreen === 'editDiary') {
+        if (currentScreen === 'diary' || currentScreen === 'attendance' || currentScreen === 'leave' || currentScreen === 'editDiary' || currentScreen === 'announcement') {
             showScreen('dashboard');
         } else if (currentScreen === 'login') {
             localStorage.removeItem('dm_teacher_session');
@@ -78,7 +78,7 @@ async function decideScreen() {
 
 function showScreen(name) {
     currentScreen = name;
-    ['login', 'namePrompt', 'dashboard', 'diary', 'attendance', 'leave', 'editDiary'].forEach(s => {
+    ['login', 'namePrompt', 'dashboard', 'diary', 'attendance', 'leave', 'editDiary', 'announcement'].forEach(s => {
         const el = document.getElementById('screen' + capitalize(s));
         if (el) el.classList.add('hidden');
     });
@@ -99,12 +99,16 @@ function showScreen(name) {
     if (title) {
         title.textContent = {
             login: 'Teacher Login', namePrompt: 'Welcome', dashboard: 'Teacher Dashboard',
-            diary: 'Diary', attendance: 'Attendance', leave: 'Leave', editDiary: 'Edit Diary'
+            diary: 'Diary', attendance: 'Attendance', leave: 'Leave', editDiary: 'Edit Diary',
+            announcement: 'Announcement'
         }[name] || 'Teacher';
     }
     if (name === 'diary') {
         const dateInput = document.getElementById('diaryDate');
         if (dateInput && !dateInput.value) dateInput.value = new Date().toISOString().split('T')[0];
+    }
+    if (name === 'announcement') {
+        loadMyAnnouncements();
     }
 }
 
@@ -151,6 +155,8 @@ function bindEvents() {
     if (leaveForm) leaveForm.addEventListener('submit', e => { e.preventDefault(); handleSaveLeave(); });
     const editDiaryForm = document.getElementById('editDiaryForm');
     if (editDiaryForm) editDiaryForm.addEventListener('submit', e => { e.preventDefault(); handleSaveEditDiary(); });
+    const announcementForm = document.getElementById('announcementForm');
+    if (announcementForm) announcementForm.addEventListener('submit', e => { e.preventDefault(); handleSendAnnouncement(); });
     const attendanceClassSelect = document.getElementById('attendanceClass');
     if (attendanceClassSelect) attendanceClassSelect.addEventListener('change', loadAttendanceStudents);
 }
@@ -241,6 +247,7 @@ async function loadTeacherData() {
     renderAssignedClasses();
     await loadMyDiaries();
     await checkOnLeaveToggle();
+    await loadMyAnnouncements();
 }
 
 function populateClassDropdowns() {
@@ -341,9 +348,6 @@ function populateSubjectsForDiary() {
     });
 }
 
-// =====================================================
-// LOAD MY DIARIES (with Edit button — Step 5.5)
-// =====================================================
 async function loadMyDiaries() {
     if (!currentTeacher) return;
     const container = document.getElementById('myDiariesList');
@@ -363,9 +367,7 @@ async function loadMyDiaries() {
             let sc = 'status-pending', st = '⏳ Pending';
             if (d.isApproved) { sc = 'status-approved'; st = '✅ Approved'; }
             else if (d.isRejected) { sc = 'status-rejected'; st = '❌ Rejected'; }
-
             const canEdit = !d.isApproved && !d.isRejected;
-
             return `
             <div style="padding: var(--space-sm) 0; border-bottom: 1px solid var(--border-color);">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
@@ -430,20 +432,14 @@ async function handleSaveDiary() {
     }
 }
 
-// =====================================================
-// EDIT DIARY (Step 5.5)
-// =====================================================
 function openEditDiary(diaryId) {
     const d = allTeacherDiaries.find(x => x.id === diaryId);
     if (!d) return;
-
     if (d.isApproved || d.isRejected) {
         UI.toast('🔒 HM approve/reject అయిన diary edit చేయలేరు.', 'warning', 4000);
         return;
     }
-
     editingDiaryId = diaryId;
-
     document.getElementById('editDiaryClass').value = d.className || '';
     document.getElementById('editDiarySubject').value = d.subject || '';
     document.getElementById('editDiaryDate').value = d.date || '';
@@ -451,26 +447,18 @@ function openEditDiary(diaryId) {
     document.getElementById('editHomework').value = d.homework || '';
     document.getElementById('editDiaryError').classList.add('hidden');
     document.getElementById('editDiaryWarning').classList.add('hidden');
-
     showScreen('editDiary');
 }
 
 async function handleSaveEditDiary() {
     if (!editingDiaryId) return;
-
     const classWork = document.getElementById('editClassWork').value.trim();
     const homework = document.getElementById('editHomework').value.trim();
     const errorEl = document.getElementById('editDiaryError');
     const btn = document.getElementById('editDiarySubmitBtn');
-
-    if (!classWork && !homework) {
-        return showFormError(errorEl, 'కనీసం Class Work లేదా Home Work రాయండి.');
-    }
-
+    if (!classWork && !homework) return showFormError(errorEl, 'కనీసం Class Work లేదా Home Work రాయండి.');
     btn.disabled = true; btn.innerHTML = 'సేవ్...'; hideFormError(errorEl);
-
     try {
-        // Re-check: approved కాకూడదు
         const doc = await db.collection('diary').doc(editingDiaryId).get();
         if (!doc.exists) {
             showFormError(errorEl, 'Diary కనుగొనబడలేదు.');
@@ -483,15 +471,11 @@ async function handleSaveEditDiary() {
             btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
             return;
         }
-
         await db.collection('diary').doc(editingDiaryId).update({
-            content: classWork,
-            classWork: classWork,
-            homework: homework || null,
+            content: classWork, classWork: classWork, homework: homework || null,
             editedAt: firebase.firestore.FieldValue.serverTimestamp(),
             editedBy: currentTeacher.name
         });
-
         UI.toast('✅ Diary update అయ్యింది!', 'success');
         editingDiaryId = null;
         await loadMyDiaries();
@@ -501,6 +485,79 @@ async function handleSaveEditDiary() {
         showFormError(errorEl, 'సేవ్ విఫలం.');
     } finally {
         btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+    }
+}
+
+// =====================================================
+// ANNOUNCEMENT (Step 5.6)
+// =====================================================
+async function handleSendAnnouncement() {
+    if (!currentTeacher) return;
+    const type = document.getElementById('announcementType').value;
+    const title = document.getElementById('announcementTitle').value.trim();
+    const message = document.getElementById('announcementMessage').value.trim();
+    const errorEl = document.getElementById('announcementError');
+    const btn = document.getElementById('announcementSubmitBtn');
+
+    if (!title) return showFormError(errorEl, 'Title నింపండి.');
+    if (!message) return showFormError(errorEl, 'Message రాయండి.');
+
+    btn.disabled = true; btn.innerHTML = 'పంపిస్తోంది...'; hideFormError(errorEl);
+
+    try {
+        await db.collection('announcements').add({
+            teacherId: currentTeacher.id,
+            teacherName: currentTeacher.name,
+            teacherPhone: currentTeacher.phone,
+            type: type, title: title, message: message,
+            status: 'pending',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        UI.toast('✅ Announcement HM కి పంపబడింది!', 'success');
+        document.getElementById('announcementForm').reset();
+        await loadMyAnnouncements();
+    } catch (error) {
+        console.error('Send announcement:', error);
+        showFormError(errorEl, 'పంపడం విఫలం.');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-paper-plane" style="margin-right: 8px;"></i> Send to HM';
+    }
+}
+
+async function loadMyAnnouncements() {
+    const container = document.getElementById('myAnnouncementsList');
+    if (!container || !currentTeacher) return;
+    container.innerHTML = `<p style="color: var(--text-muted); text-align: center; font-size: 0.85rem;">లోడ్...</p>`;
+    try {
+        const snap = await db.collection('announcements').where('teacherId', '==', currentTeacher.id).get();
+        const items = [];
+        snap.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
+        items.sort((a, b) => {
+            const ta = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+            const tb = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+            return tb - ta;
+        });
+        if (items.length === 0) {
+            container.innerHTML = `<p style="color: var(--text-muted); text-align: center; font-size: 0.85rem;">ఇంకా announcements పంపలేదు</p>`;
+            return;
+        }
+        container.innerHTML = items.slice(0, 10).map(a => {
+            let bc = 'status-pending', st = '⏳ Pending';
+            if (a.status === 'approved') { bc = 'status-approved'; st = '✅ Approved'; }
+            else if (a.status === 'rejected') { bc = 'status-rejected'; st = '❌ Rejected'; }
+            const typeIcon = a.type === 'notes' ? '📝' : '📢';
+            return `<div style="padding: var(--space-sm) 0; border-bottom: 1px solid var(--border-color);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <span style="font-size: 0.85rem; font-weight: 600;">${typeIcon} ${escapeHtml(a.title || '—')}</span>
+                    <span class="status-badge ${bc}">${st}</span>
+                </div>
+                <p style="font-size: 0.72rem; color: var(--text-muted);">${escapeHtml((a.message || '').substring(0, 80))}${(a.message || '').length > 80 ? '...' : ''}</p>
+            </div>`;
+        }).join('');
+    } catch (e) {
+        console.error('Load announcements:', e);
+        container.innerHTML = `<p style="color: var(--danger); text-align: center; font-size: 0.85rem;">లోడ్ విఫలం</p>`;
     }
 }
 
